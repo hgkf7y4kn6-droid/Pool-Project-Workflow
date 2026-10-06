@@ -1,5 +1,6 @@
 import { ApiError, NetworkError } from "@pool/api-client";
 import { SyncEngine, TransportError, type SyncTransport } from "@pool/sync";
+import { config } from "../config";
 import { getJSON, kv, KV_KEYS } from "../kv";
 import { api } from "../api";
 import { uuid } from "../ids";
@@ -63,6 +64,8 @@ export function getSyncEngine(userId: string): SyncEngine {
     },
   });
   engineUser = userId;
+  // Exposed outside production for end-to-end tests and debugging.
+  if (config.appEnv !== "production") (globalThis as { __poolSync?: SyncEngine }).__poolSync = engine;
   // Each completed sync also drains pending photo uploads.
   engine.subscribe((state) => {
     if (state.phase === "idle" && state.online) void processUploads();

@@ -94,9 +94,9 @@ export default function TaskDetail() {
             {t.status === "done" && <Button label="Reopen" icon="arrow-undo" variant="outline" className="flex-1" onPress={() => void setStatus("in_progress")} />}
           </View>
           <View className="flex-row gap-2">
-            <Button label="Photo" icon="camera" variant="secondary" className="flex-1" onPress={() => openCamera()} />
-            <Button label="Problem" icon="warning" variant="outline" className="flex-1" onPress={() => setNoteOpen("problem")} />
-            <Button label="Hours" icon="time" variant="outline" className="flex-1" onPress={() => setHoursOpen(true)} />
+            <Button label="Photo" icon="camera" variant="secondary" size="sm" className="flex-1 px-2" onPress={() => openCamera()} />
+            <Button label="Problem" icon="warning" variant="outline" size="sm" className="flex-1 px-2" onPress={() => setNoteOpen("problem")} />
+            <Button label="Hours" icon="time" variant="outline" size="sm" className="flex-1 px-2" onPress={() => setHoursOpen(true)} />
           </View>
         </View>
       )}

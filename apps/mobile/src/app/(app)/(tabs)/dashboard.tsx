@@ -8,7 +8,6 @@ import {
   Avatar,
   Badge,
   Card,
-  CardHeader,
   EmptyState,
   ListItem,
   OfflineBanner,
@@ -54,6 +53,7 @@ function CompanyDashboard() {
   const overdue = useTasks({ due: "overdue", assigneeId: mine });
   const upcoming = useTasks({ due: "upcoming", assigneeId: mine });
   const projects = useProjects("active");
+  const allProjects = useProjects("all");
   const activity = useActivity(undefined, 12);
   const photos = usePhotos({ limit: 9 });
   const remote = useApi<DashboardResponse>(["dashboard"], "/dashboard");
@@ -94,7 +94,7 @@ function CompanyDashboard() {
           {today.data?.length ? (
             <Card className="py-1">
               {today.data.slice(0, 8).map((t) => (
-                <ListItem key={t.id} title={t.title} subtitle={`${projects.data?.find((p) => p.id === t.projectId)?.name ?? "Project"} · ${shortDate(t.plannedStartDate)}–${shortDate(t.plannedEndDate)}`} icon={t.weatherSensitive ? "partly-sunny-outline" : "hammer-outline"} right={<TaskStatusBadge status={t.status} />} onPress={() => router.push(`/tasks/${t.id}`)} />
+                <ListItem key={t.id} title={t.title} subtitle={`${allProjects.data?.find((p) => p.id === t.projectId)?.name ?? "Project"} · ${shortDate(t.plannedStartDate)}–${shortDate(t.plannedEndDate)}`} icon={t.weatherSensitive ? "partly-sunny-outline" : "hammer-outline"} right={<TaskStatusBadge status={t.status} />} onPress={() => router.push(`/tasks/${t.id}`)} />
               ))}
             </Card>
           ) : (

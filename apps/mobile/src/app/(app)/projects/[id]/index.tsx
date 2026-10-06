@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams, type Href } from "expo-router";
 import { View, Pressable } from "react-native";
-import type { Permission, ScheduleSummary } from "@pool/core";
-import type { BudgetSummary } from "@pool/core";
+import type { BudgetSummary, Permission, ScheduleSummary } from "@pool/core";
 import { PROJECT_TYPE_LABELS } from "@pool/types";
 import { Icon, type IconName } from "@/components/icon";
 import { ProjectStatusBadge } from "@/components/status-badges";
@@ -14,6 +13,7 @@ import { useSession } from "@/providers/session";
 import { useSync } from "@/providers/sync";
 
 interface ProjectDashboard {
+  project: { projectManagerName: string | null };
   financial: BudgetSummary | null;
   schedule: ScheduleSummary;
   tasks: { total: number; done: number; overdue: number; today: number; blocked: number } | null;
@@ -71,7 +71,7 @@ export default function ProjectDashboardScreen() {
           <View className="flex-1 gap-0.5">
             <Text variant="bodyStrong">{p.clientName}</Text>
             <Text variant="caption">{p.propertyAddress}</Text>
-            {p.projectManagerName || p.projectManagerId ? <Text variant="caption">PM: {p.projectManagerName ?? "Assigned"}</Text> : null}
+            {p.projectManagerId ? <Text variant="caption">PM: {remote.data?.project.projectManagerName ?? p.projectManagerName ?? "Assigned"}</Text> : null}
           </View>
           <ProjectStatusBadge status={p.status} />
         </View>

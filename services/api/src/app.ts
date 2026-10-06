@@ -26,7 +26,7 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: deps.env.CORS_ORIGINS.split(",").map((o) => o.trim()),
     credentials: false,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
   });
   await app.register(rateLimit, {
     max: deps.env.RATE_LIMIT_MAX,

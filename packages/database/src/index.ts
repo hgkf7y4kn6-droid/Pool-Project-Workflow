@@ -29,3 +29,4 @@ export function createDb(options: CreateDbOptions): { db: Database; pool: pg.Poo
   const db = drizzle(pool, { schema, casing: "snake_case" });
   return { db, pool };
 }
+export { deleteOrganization } from "./tenant";

@@ -12,6 +12,7 @@ import type { ProjectStatus, ProjectType, Role } from "@pool/types";
 import type { Database } from "./index";
 import { hashPassword } from "./password";
 import * as s from "./schema";
+import { deleteOrganization } from "./tenant";
 
 /**
  * Demo data for development, QA and sales demos: one pool company with a
@@ -58,8 +59,7 @@ export async function seed(db: Database, options: SeedOptions = {}): Promise<{ o
 
   return db.transaction(async (tx) => {
     if (existing) {
-      // Users and projects cascade from the organization.
-      await tx.delete(s.organizations).where(eq(s.organizations.id, existing.id));
+      await deleteOrganization(tx, existing.id);
     }
 
     const [org] = await tx

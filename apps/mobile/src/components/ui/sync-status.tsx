@@ -68,7 +68,7 @@ export function OfflineBanner() {
   return (
     <View accessibilityLiveRegion="polite" className="mb-3 flex-row items-center gap-2 rounded-xl bg-warning-soft p-3">
       <Icon name="cloud-offline-outline" className="text-xl text-warning" />
-      <Text className="flex-1 font-sans-medium text-sm text-foreground">You're offline. Changes are saved on this device and will sync automatically.</Text>
+      <Text className="flex-1 font-sans-medium text-sm text-foreground">You&apos;re offline. Changes are saved on this device and will sync automatically.</Text>
     </View>
   );
 }
