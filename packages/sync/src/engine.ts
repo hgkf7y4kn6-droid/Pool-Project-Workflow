@@ -343,7 +343,10 @@ export class SyncEngine {
       await local.applyServerChanges(response.changes, skip);
       cursor = response.cursor;
       await local.setCursor(cursor);
-      if (!response.hasMore) return;
+      if (!response.hasMore) {
+        await local.retainProjects?.(response.accessibleProjectIds);
+        return;
+      }
     }
   }
 

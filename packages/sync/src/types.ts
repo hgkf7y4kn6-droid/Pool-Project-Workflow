@@ -33,6 +33,8 @@ export interface LocalDataStore {
   applyAcknowledgement(entityType: SyncEntityType, entityId: string, version: number, record: Record<string, unknown> | null): Promise<void>;
   /** Overwrite the local record with the server's copy (conflict resolved as "keep theirs"). */
   applyServerRecord(entityType: SyncEntityType, entityId: string, record: Record<string, unknown>): Promise<void>;
+  /** Remove local data for projects the user can no longer access. */
+  retainProjects?(projectIds: string[]): Promise<void>;
   getCursor(): Promise<string | null>;
   setCursor(cursor: string | null): Promise<void>;
 }

@@ -90,4 +90,9 @@ export interface SyncPullResponse {
   cursor: string;
   hasMore: boolean;
   serverTime: ISODateTime;
+  /**
+   * Projects the user can currently access. Devices purge local data for
+   * projects not in this list (e.g. after being removed from a crew).
+   */
+  accessibleProjectIds: UUID[];
 }

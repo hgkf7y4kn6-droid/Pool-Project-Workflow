@@ -1,13 +1,14 @@
 import { eq } from "drizzle-orm";
 import {
   DEFAULT_INSPECTION_TEMPLATES,
+  DEFAULT_ORG_SETTINGS,
   DEFAULT_STAGE_TEMPLATES,
   WorkCalendar,
   computeCompletionPct,
   planStages,
   todayISO,
 } from "@pool/core";
-import type { OrganizationSettings, ProjectStatus, ProjectType, Role } from "@pool/types";
+import type { ProjectStatus, ProjectType, Role } from "@pool/types";
 import type { Database } from "./index";
 import { hashPassword } from "./password";
 import * as s from "./schema";
@@ -34,12 +35,6 @@ export const DEMO_USERS: { key: string; email: string; fullName: string; role: R
   { key: "client", email: "client@example.test", fullName: "Dana Whitfield", role: "client", rate: 0 },
 ];
 
-export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
-  budgetAlertThresholdPct: 90,
-  clientCanSeeContractAmount: true,
-  crewLocationSharingEnabled: false,
-  weather: { rainProbabilityPct: 60, windSpeedKph: 40, minTempC: 4, maxTempC: 43 },
-};
 
 interface SeedOptions {
   /** Delete and recreate the demo organization if it already exists. */

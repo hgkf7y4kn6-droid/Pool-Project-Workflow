@@ -463,8 +463,8 @@ export interface Measurement extends Audited, Versioned {
  */
 export type MeasurementGeometry =
   | { type: "point"; x: number; y: number; z?: number }
-  | { type: "line"; points: [number, number, number?][] }
-  | { type: "polygon"; points: [number, number, number?][] }
+  | { type: "line"; points: number[][] }
+  | { type: "polygon"; points: number[][] }
   | { type: "profile"; stations: { distance: number; depth: number }[] };
 
 export interface InspectionTemplate {

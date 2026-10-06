@@ -52,7 +52,7 @@ class FakeServer implements SyncTransport {
     const start = request.cursor ? Number(request.cursor) : 0;
     const page = this.changes.slice(start, start + this.pageSize);
     const next = start + page.length;
-    return { changes: page, cursor: String(next), hasMore: next < this.changes.length, serverTime: new Date().toISOString() };
+    return { changes: page, cursor: String(next), hasMore: next < this.changes.length, serverTime: new Date().toISOString(), accessibleProjectIds: ["p1"] };
   }
 }
 

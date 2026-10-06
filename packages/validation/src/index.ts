@@ -31,6 +31,24 @@ import {
 
 // Permissive 8-4-4-4-12 hex check (Postgres accepts any such value).
 export const uuid = z.guid();
+
+type StripDefault<T> = T extends z.ZodDefault<infer I> ? I : T;
+type PatchShape<S extends z.ZodRawShape> = { [K in keyof S]: z.ZodOptional<StripDefault<S[K]>> };
+
+/**
+ * PATCH schema from a create schema: every field optional and *no defaults*.
+ * (zod's `.partial()` still applies `.default()` values, which would silently
+ * reset untouched fields on update.)
+ */
+export function patchOf<S extends z.ZodRawShape>(schema: z.ZodObject<S>): z.ZodObject<PatchShape<S>> {
+  const shape: Record<string, z.ZodType> = {};
+  for (const [key, value] of Object.entries(schema.shape)) {
+    const inner = value instanceof z.ZodDefault ? (value.unwrap() as z.ZodType) : (value as z.ZodType);
+    shape[key] = inner.optional();
+  }
+  return z.object(shape) as unknown as z.ZodObject<PatchShape<S>>;
+}
+
 export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expected a date in YYYY-MM-DD format");
 export const isoDateTime = z.string().datetime({ offset: true });
 export const cents = z.number().int().min(0).max(100_000_000_00);
@@ -133,7 +151,7 @@ export const organizationSettingsSchema = z.object({
 export const updateOrganizationSchema = z.object({
   name: trimmed(120).optional(),
   timezone: z.string().max(64).optional(),
-  settings: organizationSettingsSchema.partial().optional(),
+  settings: patchOf(organizationSettingsSchema).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -151,7 +169,7 @@ export const clientSchema = z.object({
   mailingAddress: addressSchema.nullish(),
   notes: optionalText(5000),
 });
-export const updateClientSchema = clientSchema.partial().omit({ id: true });
+export const updateClientSchema = patchOf(clientSchema.omit({ id: true }));
 
 export const utilityLocationSchema = z.object({
   kind: z.enum(["gas", "electric", "water", "sewer", "septic", "irrigation", "telecom", "other"]),
@@ -179,7 +197,7 @@ export const propertySchema = z.object({
   hoaName: optionalText(200),
   siteNotes: optionalText(10_000),
 });
-export const updatePropertySchema = propertySchema.partial().omit({ id: true, clientId: true });
+export const updatePropertySchema = patchOf(propertySchema.omit({ id: true, clientId: true }));
 
 // ---------------------------------------------------------------------------
 // Projects / stages
@@ -225,10 +243,7 @@ export const createProjectSchema = projectBase
     { message: "Completion must be on or after start", path: ["plannedCompletionDate"] },
   );
 
-export const updateProjectSchema = projectBase
-  .omit({ id: true, stageKeys: true })
-  .partial()
-  .extend({ expectedVersion: z.number().int().optional() });
+export const updateProjectSchema = patchOf(projectBase.omit({ id: true, stageKeys: true })).extend({ expectedVersion: z.number().int().optional() });
 
 export const projectListQuery = paginationQuery.extend({
   scope: z.enum(["all", "active", "upcoming", "completed", "archived"]).default("all"),
@@ -304,10 +319,7 @@ export const createTaskSchema = z.object({
   checklistTemplateKey: z.string().max(60).optional(),
 });
 
-export const updateTaskSchema = createTaskSchema
-  .omit({ id: true, checklist: true, checklistTemplateKey: true })
-  .partial()
-  .extend({
+export const updateTaskSchema = patchOf(createTaskSchema.omit({ id: true, checklist: true, checklistTemplateKey: true })).extend({
     actualStartDate: isoDate.nullish(),
     actualEndDate: isoDate.nullish(),
     expectedVersion: z.number().int().optional(),
@@ -441,7 +453,7 @@ export const changeOrderSchema = z.object({
   materialImpact: optionalText(5000),
   scheduleImpactDays: z.number().int().min(-365).max(365).default(0),
 });
-export const updateChangeOrderSchema = changeOrderSchema.partial();
+export const updateChangeOrderSchema = patchOf(changeOrderSchema);
 
 export const changeOrderTransitionSchema = z.object({
   to: z.enum(CHANGE_ORDER_STATUSES),
@@ -465,7 +477,7 @@ export const paymentSchema = z.object({
   stageId: uuid.nullish(),
   changeOrderId: uuid.nullish(),
 });
-export const updatePaymentSchema = paymentSchema.partial().extend({ paidAt: isoDateTime.nullish() });
+export const updatePaymentSchema = patchOf(paymentSchema).extend({ paidAt: isoDateTime.nullish() });
 
 // ---------------------------------------------------------------------------
 // Field: photos, documents, measurements, inspections
@@ -489,9 +501,9 @@ export const photoCreateSchema = z.object({
   visibility: z.enum(VISIBILITIES).default("internal"),
   pairedPhotoId: uuid.nullish(),
 });
-export const photoUpdateSchema = photoCreateSchema
-  .pick({ caption: true, kind: true, visibility: true, taskId: true, stageId: true, pairedPhotoId: true })
-  .partial();
+export const photoUpdateSchema = patchOf(
+  photoCreateSchema.pick({ caption: true, kind: true, visibility: true, taskId: true, stageId: true, pairedPhotoId: true }),
+);
 
 export const documentCreateSchema = z.object({
   projectId: uuid.nullish(),
@@ -517,9 +529,7 @@ export const documentVersionSchema = z.object({
   notes: optionalText(2000),
 });
 
-export const documentUpdateSchema = documentCreateSchema
-  .omit({ file: true, projectId: true })
-  .partial();
+export const documentUpdateSchema = patchOf(documentCreateSchema.omit({ file: true, projectId: true }));
 
 export const documentListQuery = paginationQuery.extend({
   projectId: uuid.optional(),
@@ -549,7 +559,7 @@ export const measurementSchema = z.object({
   notes: optionalText(5000),
   measuredAt: isoDateTime,
 });
-export const updateMeasurementSchema = measurementSchema.partial().omit({ id: true });
+export const updateMeasurementSchema = patchOf(measurementSchema.omit({ id: true }));
 
 export const inspectionItemResultSchema = z.object({
   key: z.string().max(60),
@@ -576,7 +586,7 @@ export const inspectionSchema = z.object({
   /** When the inspection fails, create corrective tasks for failed items (default true). */
   generateCorrectiveTasks: z.boolean().default(true),
 });
-export const updateInspectionSchema = inspectionSchema.partial().omit({ id: true });
+export const updateInspectionSchema = patchOf(inspectionSchema.omit({ id: true }));
 
 export const inspectionTemplateSchema = z.object({
   name: trimmed(120),
