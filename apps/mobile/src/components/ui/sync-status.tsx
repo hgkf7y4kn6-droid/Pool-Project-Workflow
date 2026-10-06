@@ -14,8 +14,10 @@ import { Text } from "./text";
 export function SyncPill() {
   const { state } = useSync();
   let icon: "cloud-done-outline" | "cloud-offline-outline" | "cloud-upload-outline" | "warning-outline" = "cloud-done-outline";
-  let label = state.lastSyncedAt ? `Synced ${fromNow(state.lastSyncedAt)}` : "Synced";
-  let tone = "text-success";
+  const busy = state.phase === "pushing" || state.phase === "pulling";
+  // Before the first successful sync the device has no data yet; don't claim "Synced".
+  let label = state.lastSyncedAt ? `Synced ${fromNow(state.lastSyncedAt)}` : busy ? "Downloading data" : "Not synced yet";
+  let tone = state.lastSyncedAt ? "text-success" : "text-info";
   if (!state.online || state.phase === "offline") {
     icon = "cloud-offline-outline";
     label = state.pending ? `Offline · ${state.pending} saved on device` : "Offline";
@@ -29,7 +31,6 @@ export function SyncPill() {
     label = `${state.pending} waiting to sync`;
     tone = "text-info";
   }
-  const busy = state.phase === "pushing" || state.phase === "pulling";
   return (
     <Pressable
       accessibilityRole="button"

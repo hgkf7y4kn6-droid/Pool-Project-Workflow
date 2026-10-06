@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
-import { ApiError } from "@pool/api-client";
+import { ApiError, NetworkError } from "@pool/api-client";
 import { PROJECT_TYPES, PROJECT_TYPE_LABELS, type ProjectType, type SessionUser } from "@pool/types";
 import { createProjectSchema } from "@pool/validation";
 import { parseMoneyToCents } from "@pool/core";
@@ -84,7 +84,8 @@ export default function NewProject() {
     },
     onError: (e) => {
       if (e instanceof ApiError) setErrors({ _: e.message });
-      else if (e instanceof Error && e.message !== "validation") setErrors({ _: "Creating a project needs a connection." });
+      else if (e instanceof NetworkError) setErrors({ _: "Creating a project needs a connection." });
+      else if (e instanceof Error && e.message !== "validation") setErrors({ _: e.message });
     },
   });
 

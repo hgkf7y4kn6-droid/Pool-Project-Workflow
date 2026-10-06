@@ -6,7 +6,8 @@
   "workspaces": [
     "apps/*",
     "packages/*",
-    "services/*"
+    "services/*",
+    "e2e"
   ],
   "scripts": {
     "build": "turbo run build",
@@ -21,7 +22,8 @@
     "api:dev": "npm run dev -w @pool/api",
     "worker:dev": "npm run dev -w @pool/worker",
     "mobile": "npm run start -w @pool/mobile",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "e2e": "npm run test -w @pool/e2e"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

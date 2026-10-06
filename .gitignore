@@ -28,3 +28,7 @@ apps/mobile/android
 npm-debug.*
 .DS_Store
 *.pem
+e2e/.web/
+e2e/.storage-e2e/
+e2e/test-results/
+e2e/playwright-report/
