@@ -1,0 +1,30 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+.env
+.env*.local
+!.env.example
+
+# Expo
+.expo/
+web-build/
+expo-env.d.ts
+apps/mobile/ios
+apps/mobile/android
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+
+# Local object storage (dev storage adapter)
+.storage/
+
+npm-debug.*
+.DS_Store
+*.pem

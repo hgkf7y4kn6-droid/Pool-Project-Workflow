@@ -1,0 +1,37 @@
+{
+  "name": "pool-project-workflow",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cross-platform pool construction project management platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "npm run generate -w @pool/database",
+    "db:migrate": "npm run migrate -w @pool/database",
+    "db:seed": "npm run seed -w @pool/database",
+    "db:reset": "npm run reset -w @pool/database",
+    "api:dev": "npm run dev -w @pool/api",
+    "worker:dev": "npm run dev -w @pool/worker",
+    "mobile": "npm run start -w @pool/mobile",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "packageManager": "npm@10.9.4"
+}
