@@ -9,6 +9,7 @@ import { Button, Chips, Screen, Text, TextField } from "@/components/ui";
 import { titleCase } from "@/lib/format";
 import { savePhoto, type CapturedImage } from "@/lib/mutations";
 import { useActor, useSession } from "@/providers/session";
+import { PHOTO } from "@pool/config";
 
 /**
  * Camera workflow: open → shoot → (optional caption) → saved on device →
@@ -28,8 +29,9 @@ export default function Camera() {
 
   const compress = async (asset: ImagePicker.ImagePickerAsset): Promise<CapturedImage> => {
     const longest = Math.max(asset.width, asset.height);
-    const actions = longest > 2560 ? [{ resize: asset.width >= asset.height ? { width: 2560 } : { height: 2560 } }] : [];
-    const out = await ImageManipulator.manipulateAsync(asset.uri, actions, { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG });
+    const edge = PHOTO.maxEdgePx;
+    const actions = longest > edge ? [{ resize: asset.width >= asset.height ? { width: edge } : { height: edge } }] : [];
+    const out = await ImageManipulator.manipulateAsync(asset.uri, actions, { compress: PHOTO.jpegQuality, format: ImageManipulator.SaveFormat.JPEG });
     return { uri: out.uri, width: out.width, height: out.height, mimeType: "image/jpeg" };
   };
 

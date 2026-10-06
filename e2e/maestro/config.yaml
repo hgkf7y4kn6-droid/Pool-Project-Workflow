@@ -1,0 +1,5 @@
+# Maestro flows for the native app (iOS simulator / Android emulator).
+# Run against a development or preview build pointing at a seeded API:
+#   maestro test e2e/maestro
+flows:
+  - "flows/*"

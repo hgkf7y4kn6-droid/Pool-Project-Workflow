@@ -1,0 +1,6 @@
+appId: com.poolpm.app
+name: Project manager signs in
+---
+- runFlow: { file: _sign-in.yaml, env: { EMAIL: pm@bluelagoon.test } }
+- assertVisible: "Active projects"
+- assertVisible: "Whitfield Backyard Oasis"

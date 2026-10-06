@@ -4,6 +4,7 @@ import type { Deps } from "../context";
 import { AppError } from "../lib/errors";
 import { parse } from "../lib/validate";
 import { LocalStorage } from "../adapters/storage/local";
+import { LIMITS } from "@pool/config";
 
 /**
  * Development-only endpoints backing LocalStorage's signed URLs. In staging
@@ -15,7 +16,7 @@ export function localStorageRoutes(app: FastifyInstance, deps: Deps) {
   const query = z.object({ exp: z.coerce.number(), sig: z.string().max(200), name: z.string().max(255).optional() });
 
   app.register(async (scope) => {
-    scope.addContentTypeParser("*", { parseAs: "buffer", bodyLimit: 500 * 1024 * 1024 }, (_req, body, done) => done(null, body));
+    scope.addContentTypeParser("*", { parseAs: "buffer", bodyLimit: LIMITS.documentBytes }, (_req, body, done) => done(null, body));
     scope.put("/storage/local/*", async (req, reply) => {
       const key = decodeURI((req.params as { "*": string })["*"]);
       const q = parse(query, req.query);

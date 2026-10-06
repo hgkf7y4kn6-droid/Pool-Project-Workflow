@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build:web": "cd ../apps/mobile && CI=1 expo export --platform web --output-dir ../../e2e/.web",
-    "test": "playwright test",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

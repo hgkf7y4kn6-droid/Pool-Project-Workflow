@@ -3,6 +3,7 @@
   "build": {
     "development": {
       "developmentClient": true,
+      "channel": "development",
       "distribution": "internal",
       "env": { "APP_ENV": "development", "EXPO_PUBLIC_API_URL": "http://localhost:4000" }
     },

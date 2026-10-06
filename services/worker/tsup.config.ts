@@ -9,4 +9,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   noExternal: [/^@pool\//],
+  // Third-party packages (including ones only the @pool/* packages depend on)
+  // stay external and are resolved from node_modules at runtime.
+  external: [/^(?!@pool\/)(@[^/]+\/)?[^./][^:]*$/],
 });

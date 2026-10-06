@@ -1,0 +1,22 @@
+appId: com.poolpm.app
+name: Field worker captures a task photo
+---
+- runFlow: { file: _sign-in.yaml, env: { EMAIL: super@bluelagoon.test } }
+- tapOn: "Tasks"
+- tapOn: "All"
+- tapOn: "Search tasks"
+- inputText: "Steel/Reinforcement"
+- tapOn: "Whitfield Backyard Oasis"
+- tapOn: "Photo"
+# Permission dialogs differ by OS version; accept if shown.
+- runFlow:
+    when: { visible: "While using the app|Allow|Only this time" }
+    commands:
+      - tapOn: "While using the app|Allow|Only this time"
+- tapOn: "Take photo"
+- tapOn: "Caption (optional)"
+- inputText: "Maestro rebar check"
+- tapOn: "Save photo"
+- extendedWaitUntil:
+    visible: "Sync status: Synced.*"
+    timeout: 60000

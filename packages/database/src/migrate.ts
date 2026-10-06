@@ -10,24 +10,11 @@ import { createDb } from "./index";
  */
 export async function runMigrations(connectionString: string): Promise<void> {
   const { db, pool } = createDb({ connectionString, max: 1 });
-  const migrationsFolder = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../migrations");
+  // MIGRATIONS_DIR lets bundled deployments (Docker) point at the copied folder.
+  const migrationsFolder = process.env.MIGRATIONS_DIR ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../migrations");
   try {
     await migrate(db, { migrationsFolder });
   } finally {
     await pool.end();
   }
-}
-
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    console.error("DATABASE_URL is required");
-    process.exit(1);
-  }
-  runMigrations(url)
-    .then(() => console.log("Migrations applied"))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
 }

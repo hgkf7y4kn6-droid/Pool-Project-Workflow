@@ -1,0 +1,134 @@
+name: Deploy
+
+# main → staging automatically; production via manual dispatch (or a release).
+# Each target is a GitHub Environment with its own secrets and protection rules:
+#   DATABASE_URL       — used only by the migration step
+#   DEPLOY_HOOK_URL    — your platform's deploy hook (Render, Fly, ECS, k8s, ...)
+#   EXPO_TOKEN         — EAS builds / OTA updates
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [development, staging, production]
+        default: staging
+      mobile:
+        description: Also ship the mobile app (EAS update; build when native code changed)
+        type: choice
+        options: [none, update, build]
+        default: update
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+env:
+  TARGET: ${{ inputs.environment || 'staging' }}
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/pool
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: api
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-api:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: worker
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}-worker:${{ steps.meta.outputs.tag }}
+          cache-from: type=gha
+
+  migrate:
+    needs: images
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Migrations are forward-only and must be backward compatible with the
+      # previous release (expand → deploy → contract), so they run first.
+      - name: Apply database migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: docker run --rm -e DATABASE_URL "${IMAGE_PREFIX}-api:${{ needs.images.outputs.tag }}" node dist/migrate.js
+
+  rollout:
+    needs: [images, migrate]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    steps:
+      - name: Trigger platform deploy
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
+          TAG: ${{ needs.images.outputs.tag }}
+        run: |
+          if [ -z "$DEPLOY_HOOK_URL" ]; then
+            echo "::warning::DEPLOY_HOOK_URL not set for $TARGET; images are pushed with tag $TAG but nothing was rolled out."
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_HOOK_URL" -H 'content-type: application/json' \
+            -d "{\"api\":\"${IMAGE_PREFIX}-api:${TAG}\",\"worker\":\"${IMAGE_PREFIX}-worker:${TAG}\"}"
+      - name: Smoke test
+        if: vars.API_URL != ''
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS "${{ vars.API_URL }}/health/ready" && exit 0
+            sleep 10
+          done
+          echo "::error::API did not become ready"; exit 1
+
+  mobile:
+    needs: rollout
+    if: (inputs.mobile || 'update') != 'none'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+        working-directory: .
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: OTA update (JS-only changes)
+        if: (inputs.mobile || 'update') == 'update'
+        run: eas update --channel "$TARGET" --environment "$TARGET" --message "${GITHUB_SHA::12}" --non-interactive
+      - name: Store build (native changes)
+        if: inputs.mobile == 'build'
+        run: eas build --platform all --profile "$TARGET" --non-interactive --no-wait

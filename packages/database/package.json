@@ -10,13 +10,14 @@
     "./schema": "./src/schema.ts",
     "./seed": "./src/seed.ts",
     "./password": "./src/password.ts",
-    "./migrate": "./src/migrate.ts"
+    "./migrate": "./src/migrate.ts",
+    "./migrate-cli": "./src/migrate-cli.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "migrate": "tsx src/migrate.ts",
+    "migrate": "tsx src/migrate-cli.ts",
     "seed": "tsx src/seed-cli.ts",
-    "reset": "tsx src/reset.ts && tsx src/migrate.ts && tsx src/seed-cli.ts",
+    "reset": "tsx src/reset.ts && tsx src/migrate-cli.ts && tsx src/seed-cli.ts",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests"

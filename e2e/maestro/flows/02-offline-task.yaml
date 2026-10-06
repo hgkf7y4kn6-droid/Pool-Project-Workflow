@@ -1,0 +1,16 @@
+appId: com.poolpm.app
+name: Supervisor ticks a checklist item offline and it syncs on reconnect
+---
+- runFlow: { file: _sign-in.yaml, env: { EMAIL: super@bluelagoon.test } }
+- tapOn: "Tasks"
+- tapOn: "All"
+- tapOn: "Search tasks"
+- inputText: "Steel/Reinforcement"
+- tapOn: "Whitfield Backyard Oasis"
+- setAirplaneMode: enabled
+- tapOn: "Chairs / spacing verified.*"
+- assertVisible: "Sync status: Offline · 1 saved on device.*"
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible: "Sync status: Synced.*"
+    timeout: 60000

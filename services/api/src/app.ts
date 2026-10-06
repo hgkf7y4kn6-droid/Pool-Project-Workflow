@@ -13,12 +13,13 @@ import { generalRoutes } from "./routes/general";
 import { projectRoutes } from "./routes/projects";
 import { realtimeRoutes } from "./routes/realtime";
 import { localStorageRoutes } from "./routes/storage";
+import { LIMITS } from "@pool/config";
 
 export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   const app = Fastify({
     loggerInstance: deps.log as unknown as FastifyBaseLogger,
     trustProxy: true,
-    bodyLimit: 2 * 1024 * 1024,
+    bodyLimit: LIMITS.jsonBodyBytes,
     genReqId: () => crypto.randomUUID(),
   });
 

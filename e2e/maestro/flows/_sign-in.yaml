@@ -1,0 +1,15 @@
+# Reusable sub-flow: sign in with a seeded account.
+# Usage: - runFlow: { file: _sign-in.yaml, env: { EMAIL: super@bluelagoon.test } }
+appId: com.poolpm.app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- inputText: "PoolDemo2026!"
+- hideKeyboard
+- tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Sync status: Synced.*"
+    timeout: 30000

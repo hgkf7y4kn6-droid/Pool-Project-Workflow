@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { APP_ENVS, isDeployedEnv } from "@pool/config";
 
 const bool = z
   .enum(["true", "false", "1", "0"])
@@ -11,7 +12,7 @@ const bool = z
  */
 const envSchema = z
   .object({
-    APP_ENV: z.enum(["development", "test", "staging", "production"]).default("development"),
+    APP_ENV: z.enum(APP_ENVS).default("development"),
     PORT: z.coerce.number().int().default(4000),
     HOST: z.string().default("0.0.0.0"),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
@@ -80,7 +81,7 @@ const envSchema = z
     if (env.AI_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY) {
       ctx.addIssue({ code: "custom", path: ["ANTHROPIC_API_KEY"], message: "ANTHROPIC_API_KEY is required for anthropic" });
     }
-    if ((env.APP_ENV === "production" || env.APP_ENV === "staging") && env.STORAGE_DRIVER === "local") {
+    if (isDeployedEnv(env.APP_ENV) && env.STORAGE_DRIVER === "local") {
       ctx.addIssue({ code: "custom", path: ["STORAGE_DRIVER"], message: "Use object storage (s3) outside development" });
     }
   });

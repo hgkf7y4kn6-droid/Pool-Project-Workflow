@@ -45,6 +45,7 @@ import * as org from "../services/organization";
 import { portfolioReport, reportToCsv, reportToPdf, reportToXlsx } from "../services/reports";
 import { globalSearch } from "../services/search";
 import { pullChanges, pushOperations } from "../services/sync";
+import { LIMITS } from "@pool/config";
 
 const id = z.object({ id: z.guid() });
 
@@ -199,7 +200,7 @@ export function generalRoutes(app: FastifyInstance, deps: Deps) {
     });
 
     // --- Offline sync ------------------------------------------------------------
-    s.post("/sync/push", { bodyLimit: 5 * 1024 * 1024 }, async (req) => ok({ results: await pushOperations(req.ctx, parse(syncPushSchema, req.body)) }));
+    s.post("/sync/push", { bodyLimit: LIMITS.syncPushBytes }, async (req) => ok({ results: await pushOperations(req.ctx, parse(syncPushSchema, req.body)) }));
     s.post("/sync/pull", async (req) => ok(await pullChanges(req.ctx, parse(syncPullSchema, req.body))));
   });
 }

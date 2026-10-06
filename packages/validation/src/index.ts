@@ -23,6 +23,7 @@ import {
   TASK_STATUSES,
   VISIBILITIES,
 } from "@pool/types";
+import { LIMITS } from "@pool/config";
 
 /*
  * Request validation schemas shared by the API (DTO validation) and the
@@ -497,7 +498,7 @@ export const photoCreateSchema = z.object({
   takenAt: isoDateTime,
   location: geoPointSchema.nullish(),
   mimeType: z.enum(["image/jpeg", "image/png", "image/heic", "image/webp"]).default("image/jpeg"),
-  byteSize: z.number().int().positive().max(50 * 1024 * 1024),
+  byteSize: z.number().int().positive().max(LIMITS.photoBytes),
   width: z.number().int().positive().max(20_000).nullish(),
   height: z.number().int().positive().max(20_000).nullish(),
   visibility: z.enum(VISIBILITIES).default("internal"),
@@ -518,7 +519,7 @@ export const documentCreateSchema = z.object({
   file: z.object({
     fileName: trimmed(255),
     mimeType: z.string().max(120),
-    byteSize: z.number().int().positive().max(500 * 1024 * 1024),
+    byteSize: z.number().int().positive().max(LIMITS.documentBytes),
     checksumSha256: z.string().regex(/^[a-f0-9]{64}$/).nullish(),
   }),
 });
@@ -526,7 +527,7 @@ export const documentCreateSchema = z.object({
 export const documentVersionSchema = z.object({
   fileName: trimmed(255),
   mimeType: z.string().max(120),
-  byteSize: z.number().int().positive().max(500 * 1024 * 1024),
+  byteSize: z.number().int().positive().max(LIMITS.documentBytes),
   checksumSha256: z.string().regex(/^[a-f0-9]{64}$/).nullish(),
   notes: optionalText(2000),
 });

@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.expo
+**/.turbo
+apps/mobile/ios
+apps/mobile/android
+e2e/.web
+e2e/test-results
+e2e/playwright-report
+.storage*
+.env
+.env.*
+!.env.example
+.git

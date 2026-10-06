@@ -9,6 +9,7 @@ import { extensionFor, storageKeys } from "../adapters/storage/types";
 import { loadProject, requirePermission } from "./access";
 import { recordActivity } from "./activity";
 import { photoOut } from "./mappers";
+import { PHOTO } from "@pool/config";
 
 type PhotoRow = typeof photos.$inferSelect;
 
@@ -168,7 +169,7 @@ export async function deletePhoto(ctx: Ctx, photoId: string) {
 }
 
 /**
- * Thumbnail job: 400px JPEG next to the original. The original is kept
+ * Thumbnail job: small JPEG next to the original. The original is kept
  * untouched (the app already compressed it before upload).
  */
 export async function generateThumbnail(deps: Deps, photoId: string): Promise<void> {
@@ -178,7 +179,7 @@ export async function generateThumbnail(deps: Deps, photoId: string): Promise<vo
   const original = await deps.storage.getObject(row.storageKey);
   const image = sharp(original, { failOn: "none" }).rotate();
   const meta = await image.metadata();
-  const thumb = await image.resize({ width: 400, height: 400, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 72, mozjpeg: true }).toBuffer();
+  const thumb = await image.resize({ width: PHOTO.thumbnailEdgePx, height: PHOTO.thumbnailEdgePx, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 72, mozjpeg: true }).toBuffer();
   const thumbnailKey = storageKeys.photoThumbnail(row.organizationId, row.projectId, row.id);
   await deps.storage.putObject(thumbnailKey, thumb, "image/jpeg");
   await deps.db
