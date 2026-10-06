@@ -1,0 +1,98 @@
+{
+  "expo": {
+    "name": "Pool PM",
+    "slug": "pool-pm",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "poolpm",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.poolpm.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Take progress, inspection and problem photos for your projects.",
+        "NSPhotoLibraryUsageDescription": "Attach existing photos to projects and tasks.",
+        "NSLocationWhenInUseUsageDescription": "Tag photos and measurements with the job-site location, and capture a property's GPS position.",
+        "NSFaceIDUsageDescription": "Unlock Pool PM with Face ID."
+      }
+    },
+    "android": {
+      "package": "com.poolpm.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A5EA8",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "USE_BIOMETRIC"
+      ]
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#f3f6f9",
+          "dark": {
+            "backgroundColor": "#0a1117"
+          }
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/PlusJakartaSans-Regular.ttf",
+            "./assets/fonts/PlusJakartaSans-Bold.ttf",
+            "./assets/fonts/PlusJakartaSans-Medium.ttf",
+            "./assets/fonts/PlusJakartaSans-SemiBold.ttf",
+            "./assets/fonts/PlusJakartaSans-ExtraBold.ttf",
+            "./assets/fonts/PlusJakartaSans-Light.ttf"
+          ]
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Take progress, inspection and problem photos for your projects."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Tag photos and measurements with the job-site location."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Unlock Pool PM with Face ID."
+        }
+      ],
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "apiUrl": "http://localhost:4000"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": { "APP_ENV": "development", "EXPO_PUBLIC_API_URL": "http://localhost:4000" }
+    },
+    "staging": {
+      "distribution": "internal",
+      "channel": "staging",
+      "env": { "APP_ENV": "staging", "EXPO_PUBLIC_API_URL": "https://api.staging.example.com" }
+    },
+    "production": {
+      "channel": "production",
+      "autoIncrement": true,
+      "env": { "APP_ENV": "production", "EXPO_PUBLIC_API_URL": "https://api.example.com" }
+    }
+  },
+  "submit": { "production": {} }
+}

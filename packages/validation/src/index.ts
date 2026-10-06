@@ -490,6 +490,8 @@ export const photoCreateSchema = z.object({
   inspectionId: uuid.nullish(),
   changeOrderId: uuid.nullish(),
   measurementId: uuid.nullish(),
+  /** Photo evidence for a checklist item that requires one. */
+  checklistItemId: uuid.nullish(),
   kind: z.enum(PHOTO_KINDS).default("progress"),
   caption: optionalText(2000),
   takenAt: isoDateTime,

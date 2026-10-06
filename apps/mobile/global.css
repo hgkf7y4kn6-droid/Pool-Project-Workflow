@@ -1,0 +1,105 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+/*
+ * Pool PM design tokens (mirror of packages/ui palette — keep in sync).
+ * Light values live in @theme; dark values override the same variables.
+ */
+@theme {
+  --color-background: #f3f6f9;
+  --color-card: #ffffff;
+  --color-surface: #eef3f7;
+  --color-muted: #e2e9f0;
+  --color-border: #c9d4de;
+
+  --color-foreground: #0d1a26;
+  --color-muted-foreground: #4a5b6c;
+
+  --color-primary: #0a5ea8;
+  --color-primary-foreground: #ffffff;
+  --color-primary-soft: #dcecfa;
+  --color-accent: #f2a900;
+  --color-accent-foreground: #1a1300;
+
+  --color-success: #0b6b4c;
+  --color-success-soft: #dcf3ea;
+  --color-warning: #9a4508;
+  --color-warning-soft: #fdf0dc;
+  --color-destructive: #c42b2b;
+  --color-destructive-soft: #fbe3e3;
+  --color-info: #0b7285;
+  --color-info-soft: #dcf1f4;
+
+  /* Fonts: names match the keys passed to useFonts in src/app/_layout.tsx */
+  --font-sans: "sans-regular";
+  --font-sans-light: "sans-light";
+  --font-sans-medium: "sans-medium";
+  --font-sans-semibold: "sans-semibold";
+  --font-sans-bold: "sans-bold";
+  --font-sans-extrabold: "sans-extrabold";
+}
+
+:root {
+  @media ios {
+    --font-sans: "sans-regular";
+  }
+  @media android {
+    --font-sans: "sans-regular";
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0a1117;
+    --color-card: #111b24;
+    --color-surface: #16222d;
+    --color-muted: #1d2b37;
+    --color-border: #2b3d4c;
+
+    --color-foreground: #e9eef4;
+    --color-muted-foreground: #9badbe;
+
+    --color-primary: #4da6ff;
+    --color-primary-foreground: #04121f;
+    --color-primary-soft: #12304d;
+    --color-accent: #ffc233;
+    --color-accent-foreground: #1a1300;
+
+    --color-success: #3dd598;
+    --color-success-soft: #0f3326;
+    --color-warning: #f5a524;
+    --color-warning-soft: #3a2a0b;
+    --color-destructive: #ff6b6b;
+    --color-destructive-soft: #3d1717;
+    --color-info: #38bdf8;
+    --color-info-soft: #0d2e3d;
+  }
+}
+
+/* Shared component utilities */
+@utility screen {
+  @apply flex-1 bg-background;
+}
+@utility card {
+  @apply rounded-2xl border border-border bg-card p-4;
+}
+@utility h1 {
+  @apply font-sans-extrabold text-2xl text-foreground;
+}
+@utility h2 {
+  @apply font-sans-bold text-xl text-foreground;
+}
+@utility h3 {
+  @apply font-sans-semibold text-lg text-foreground;
+}
+@utility body {
+  @apply font-sans text-base text-foreground;
+}
+@utility caption {
+  @apply font-sans text-sm text-muted-foreground;
+}
+@utility label {
+  @apply font-sans-semibold text-sm text-muted-foreground;
+}

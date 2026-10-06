@@ -394,6 +394,7 @@ export interface Photo extends Audited, Versioned {
   inspectionId: UUID | null;
   changeOrderId: UUID | null;
   measurementId: UUID | null;
+  checklistItemId: UUID | null;
   kind: PhotoKind;
   caption: string | null;
   takenAt: ISODateTime;

@@ -1,5 +1,5 @@
 import { and, desc, eq, isNull, lt, type SQL } from "drizzle-orm";
-import { photos, tasks, type DbOrTx } from "@pool/database";
+import { checklistItems, photos, tasks, type DbOrTx } from "@pool/database";
 import type { PhotoCreateInput } from "@pool/validation";
 import { photoUpdateSchema, z } from "@pool/validation";
 import type { PhotoKind } from "@pool/types";
@@ -74,6 +74,10 @@ export async function createPhoto(ctx: Ctx, projectId: string, input: PhotoCreat
     const [task] = await db.select({ projectId: tasks.projectId, stageId: tasks.stageId }).from(tasks).where(eq(tasks.id, input.taskId));
     if (!task || task.projectId !== projectId) throw badRequest("Task does not belong to this project");
     stageId = stageId ?? task.stageId;
+  }
+  if (input.checklistItemId) {
+    const [item] = await db.select({ projectId: checklistItems.projectId }).from(checklistItems).where(eq(checklistItems.id, input.checklistItemId));
+    if (!item || item.projectId !== projectId) throw badRequest("Checklist item does not belong to this project");
   }
   if (input.visibility === "client" && ctx.auth.role === "subcontractor") throw forbidden("Subcontractors cannot publish client photos");
   const { location, id, ...rest } = input;
