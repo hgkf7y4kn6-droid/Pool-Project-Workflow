@@ -15,6 +15,8 @@ export default function Settings() {
   const projects = useProjects("all");
   const [pinned, setPinned] = useState<string[]>(getJSON(KV_KEYS.pinnedProjects, []));
   const [confirmWipe, setConfirmWipe] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const unsynced = state.pending + state.failed + state.conflicts;
   const togglePin = (id: string) => {
     const next = pinned.includes(id) ? pinned.filter((p) => p !== id) : [...pinned, id];
     setPinned(next);
@@ -62,17 +64,26 @@ export default function Settings() {
       </Card>
 
       <View className="mt-6 gap-2">
-        <Button label="Sign out" variant="outline" icon="log-out-outline" onPress={() => void signOut()} />
+        <Button label="Sign out" variant="outline" icon="log-out-outline" onPress={() => (unsynced ? setConfirmSignOut(true) : void signOut())} />
         <Button label="Sign out and erase device data" variant="ghost" onPress={() => setConfirmWipe(true)} />
       </View>
       <ConfirmDialog
         visible={confirmWipe}
         title="Erase device data?"
-        message={state.pending ? `${state.pending} change(s) have not synced yet and will be lost.` : "All project data stored on this device will be removed."}
+        message={unsynced ? `${unsynced} change(s) have not synced yet and will be lost.` : "All project data stored on this device will be removed."}
         confirmLabel="Erase"
         destructive
         onCancel={() => setConfirmWipe(false)}
         onConfirm={() => void signOut({ wipe: true })}
+      />
+      <ConfirmDialog
+        visible={confirmSignOut}
+        title="Sign out with unsynced changes?"
+        message={`${unsynced} change(s) are still on this device only. They will upload when you sign back in, but are erased if someone else signs in here first.`}
+        confirmLabel="Sign out"
+        cancelLabel="Stay signed in"
+        onCancel={() => setConfirmSignOut(false)}
+        onConfirm={() => void signOut()}
       />
     </Screen>
   );

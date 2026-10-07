@@ -1,3 +1,29 @@
+# Pool PM — notes for coding agents
+
+Monorepo (npm workspaces + Turborepo). Read `README.md` and `docs/architecture.md` first.
+
+- **Commands**: `npm run typecheck`, `npm run lint`, `npm test` (API/database suites need Postgres at `TEST_DATABASE_URL`), `npm run e2e`.
+- **Where logic goes**:
+  - Business rules go in `packages/core`: pure functions, unit-tested.
+  - Request shapes go in `packages/validation`; use `patchOf()` for PATCH schemas.
+  - Shared constants go in `packages/config`.
+  - The API keeps HTTP in `routes/` and logic in `services/`. Every external system sits behind an adapter in `services/api/src/adapters`.
+- **Authorization**:
+  - Every service call checks `requirePermission` (capability) and `loadProject` / `projectAccessCondition` (row level).
+  - Return 404 for inaccessible rows.
+  - Clients and subcontractors must never receive internal fields; see `docs/security.md`.
+- **Offline**:
+  - Field writes in the app go through `apps/mobile/src/lib/mutations.ts`: a local upsert plus an enqueued sync op.
+  - The matching server handler lives in `services/api/src/services/sync.ts` and must call the same service function as REST.
+  - Never drop queued operations silently.
+- **Database**:
+  - Edit `packages/database/src/schema.ts`, then `npm run db:generate`, and commit the migration.
+  - Synced tables need `version`, `change_seq` and `deleted_at`, plus the trigger from `0001_sync_triggers.sql`.
+- **Money** is integer cents. **Dates** are `YYYY-MM-DD`. **IDs** are UUIDs, which clients may generate.
+- **UI**:
+  - Use the components in `apps/mobile/src/components/ui`.
+  - Give interactive elements accessible labels. E2E tests select by role and name.
+
 <!-- BEGIN:turborepo-agent-rules -->
 
 # This is NOT the Turborepo you know
