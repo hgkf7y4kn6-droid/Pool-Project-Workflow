@@ -27,15 +27,16 @@ export function realtimeRoutes(app: FastifyInstance, deps: Deps) {
     }, 60_000);
     const internal = isInternal(ctx);
 
-    const unsubscribe = deps.events.subscribe((event: RealtimeEvent) => {
+    const unsubscribe = deps.events.subscribe(async (event: RealtimeEvent) => {
       if (event.organizationId !== ctx.auth.organizationId) return;
       if (event.userIds && !event.userIds.includes(ctx.auth.userId)) return;
       if (event.internal && !internal) return;
       if (event.projectId && !visible.has(event.projectId)) {
-        // A newly created project the user just gained access to.
-        if (event.type !== "project.created") return;
+        // Membership may have just changed (new project, added to a team): re-check before dropping.
+        visible = new Set(await accessibleProjectIds(ctx).catch(() => [...visible]));
+        if (!visible.has(event.projectId)) return;
       }
-      socket.send(JSON.stringify(event));
+      if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(event));
     });
     const ping = setInterval(() => socket.ping(), 25_000);
     socket.send(JSON.stringify({ type: "ready", at: new Date().toISOString() }));

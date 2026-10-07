@@ -32,7 +32,7 @@ export default function Settings() {
           </View>
           <Switch accessibilityLabel="Biometric unlock" disabled={!biometricsAvailable} value={biometricsEnabled} onValueChange={(v) => void setBiometricsEnabled(v)} />
         </View>
-        <ListItem icon="key-outline" title="Two-step verification" subtitle={user?.mfaEnabled ? "On" : "Off — set up from the web admin"} />
+        <ListItem icon="key-outline" title="Two-step verification" subtitle={user?.mfaEnabled ? "On" : "Off"} onPress={() => router.push("/two-step")} />
       </Card>
 
       <SectionHeader title="Offline projects" />

@@ -42,6 +42,7 @@ Locally, an API that is already listening on :4000 is reused. Stop your dev API 
 | `auth.spec.ts` | wrong-password message; PM sign-in and dashboard |
 | `projects.spec.ts` | creating a project with a new client and property generates a 17-task schedule; a task assigned in the app reaches the worker's device and notifications |
 | `field.spec.ts` | a checklist tick made **offline** is saved on device, completion is blocked by required items, and it syncs on reconnect; a camera photo uploads with project/stage/task context |
+| `mfa.spec.ts` | turning on two-step verification with a real TOTP code; the next sign-in requires the code |
 | `client.spec.ts` | the client sees only their project, signs change order #2 and the server records approval and signature |
 
 To use a preinstalled Chromium instead of `npx playwright install`, set `PLAYWRIGHT_CHROMIUM_PATH`. Traces and screenshots for failures are kept in `e2e/test-results`.

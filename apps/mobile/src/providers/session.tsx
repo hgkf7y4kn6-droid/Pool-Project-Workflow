@@ -24,6 +24,8 @@ interface SessionContextValue {
   biometricsEnabled: boolean;
   setBiometricsEnabled(enabled: boolean): Promise<boolean>;
   can(permission: Permission): boolean;
+  /** Re-fetch the profile (e.g. after enabling two-step verification). */
+  refreshUser(): Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -143,6 +145,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const fresh = await api.me();
+    setUser(fresh);
+    setJSON(KV_KEYS.sessionUser, fresh);
+  }, []);
+
   const value = useMemo<SessionContextValue>(
     () => ({
       status,
@@ -156,8 +164,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       biometricsEnabled,
       setBiometricsEnabled,
       can: (permission) => (user ? can(user.role, permission) : false),
+      refreshUser,
     }),
-    [status, user, signIn, verifyMfa, completeLogin, signOut, unlock, biometricsAvailable, biometricsEnabled, setBiometricsEnabled],
+    [status, user, signIn, verifyMfa, completeLogin, signOut, unlock, biometricsAvailable, biometricsEnabled, setBiometricsEnabled, refreshUser],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
