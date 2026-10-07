@@ -128,7 +128,10 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
       - name: OTA update (JS-only changes)
         if: (inputs.mobile || 'update') == 'update'
-        run: eas update --channel "$TARGET" --environment "$TARGET" --message "${GITHUB_SHA::12}" --non-interactive
+        # EAS environments are development / preview / production; staging builds use "preview".
+        run: |
+          EAS_ENV=$([ "$TARGET" = staging ] && echo preview || echo "$TARGET")
+          eas update --channel "$TARGET" --environment "$EAS_ENV" --message "${GITHUB_SHA::12}" --non-interactive
       - name: Store build (native changes)
         if: inputs.mobile == 'build'
         run: eas build --platform all --profile "$TARGET" --non-interactive --no-wait

@@ -53,6 +53,32 @@ npm run mobile                  # Expo dev server: press i / a / w
 
 When you run the app on a physical phone, set `EXPO_PUBLIC_API_URL` in `.env` to your computer's LAN address (for example `http://192.168.1.20:4000`) and add the Expo web origin to `CORS_ORIGINS` if you use the browser.
 
+### Running on a phone
+
+The app is linked to EAS project `bf141886-8bab-41b9-ab69-c1baf17d700f` (`apps/mobile/app.json`).
+
+| Option | Good for | Limits |
+|---|---|---|
+| **Expo Go** (SDK 54): `npm run mobile`, then scan the QR code | A quick look at every screen, camera, GPS, offline mode | No push notifications; preferences and pinned projects reset on restart (MMKV is unavailable); iOS biometrics fall back to the passcode |
+| **Development build**: install once, then `npm run mobile` hot-reloads into it | Real field testing, push, Face ID, Maestro flows | Rebuild only when native dependencies change |
+
+In both cases, set `EXPO_PUBLIC_API_URL` in `.env` to an address the phone can reach. Use your computer's LAN IP (`http://192.168.1.20:4000`) or a tunnel (`ngrok http 4000`), never `localhost`.
+
+```bash
+npm install --global eas-cli && eas login
+cd apps/mobile
+eas build --profile development --platform android     # APK; install it from the link EAS prints
+eas build --profile development --platform ios         # needs an Apple Developer account; register devices with `eas device:create`
+eas build --profile development-simulator --platform ios   # iOS simulator build, no Apple account needed
+```
+
+Shareable test builds that don't need Metro use the `staging` profile (an Android APK and internal iOS distribution).
+1. Set `EXPO_PUBLIC_API_URL` in the **preview** environment on expo.dev (Project → Environment variables) to your staging API.
+2. Do the same in the **production** environment for store builds. A staging or production build without it fails on purpose instead of shipping an app that points at `localhost`.
+3. Run `eas build --profile staging --platform android`, then `eas update --channel staging --environment preview` for JS-only updates.
+
+If the EAS project belongs to an Expo organization rather than your personal account, add `"owner": "<org>"` to `apps/mobile/app.json`.
+
 ### Demo accounts
 
 All demo accounts use the password `PoolDemo2026!`.

@@ -1,6 +1,6 @@
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Platform } from "react-native";
 import { api } from "./api";
 import { kv, KV_KEYS } from "./kv";
@@ -13,6 +13,9 @@ Notifications.setNotificationHandler({
 /** Ask for permission and register this device's Expo push token with the API. */
 export async function registerForPush(): Promise<string | null> {
   if (Platform.OS === "web" || !Device.isDevice) return null;
+  // Expo Go can't receive this app's push notifications (and Android Expo Go has no remote push at all);
+  // use a development build to test them.
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return null;
   const { status: existing } = await Notifications.getPermissionsAsync();
   const status = existing === "granted" ? existing : (await Notifications.requestPermissionsAsync()).status;
   if (status !== "granted") return null;

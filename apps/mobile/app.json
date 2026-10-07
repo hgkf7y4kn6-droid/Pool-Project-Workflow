@@ -92,7 +92,16 @@
       "reactCompiler": true
     },
     "extra": {
-      "apiUrl": "http://localhost:4000"
+      "apiUrl": "http://localhost:4000",
+      "eas": {
+        "projectId": "bf141886-8bab-41b9-ab69-c1baf17d700f"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/bf141886-8bab-41b9-ab69-c1baf17d700f"
     }
   }
 }
