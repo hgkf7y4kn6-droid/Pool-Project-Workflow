@@ -77,7 +77,7 @@ Shareable test builds that don't need Metro use the `staging` profile (an Androi
 2. Do the same in the **production** environment for store builds. A staging or production build without it fails on purpose instead of shipping an app that points at `localhost`.
 3. Run `eas build --profile staging --platform android`, then `eas update --channel staging --environment preview` for JS-only updates.
 
-If the EAS project belongs to an Expo organization rather than your personal account, add `"owner": "<org>"` to `apps/mobile/app.json`.
+The EAS project is `@richesdigitalventuress-team/pool-project-workflow`; `owner` and `slug` in `apps/mobile/app.json` must match it.
 
 ### Demo accounts
 

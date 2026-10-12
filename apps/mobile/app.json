@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Pool PM",
-    "slug": "pool-pm",
+    "slug": "pool-project-workflow",
     "version": "0.1.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
@@ -102,6 +102,7 @@
     },
     "updates": {
       "url": "https://u.expo.dev/bf141886-8bab-41b9-ab69-c1baf17d700f"
-    }
+    },
+    "owner": "richesdigitalventuress-team"
   }
 }
