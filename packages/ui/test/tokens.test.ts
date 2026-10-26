@@ -10,6 +10,10 @@ describe("design tokens", () => {
       expect(contrastRatio(p.mutedForeground, p.card)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(p.primaryForeground, p.primary)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(p.accentForeground, p.accent)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(p.accentInk, p.card)).toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(p.primary, p.card), "primary as text/links").toBeGreaterThanOrEqual(4.5);
+      expect(contrastRatio(p.heroForeground, p.hero)).toBeGreaterThanOrEqual(7);
+      expect(contrastRatio(p.heroMuted, p.hero)).toBeGreaterThanOrEqual(4.5);
     });
     it(`${scheme}: status badges meet AA`, () => {
       for (const tone of ["neutral", "info", "success", "warning", "danger", "primary"] as Tone[]) {

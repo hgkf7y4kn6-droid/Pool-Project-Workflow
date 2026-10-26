@@ -25,7 +25,7 @@ export default function MagicLink() {
   }, [token, completeLogin]);
 
   return (
-    <AuthShell title="Signing you in">
+    <AuthShell showBrand={false} title="Signing you in">
       <View className="items-center gap-4">
         {error ? (
           <>

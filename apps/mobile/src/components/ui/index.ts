@@ -14,3 +14,4 @@ export * from "./sync-status";
 export * from "./timeline";
 export * from "./photo-grid";
 export * from "./signature-pad";
+export * from "./motion";

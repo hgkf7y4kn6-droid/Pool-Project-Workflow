@@ -4,41 +4,46 @@
 @import "nativewind/theme";
 
 /*
- * Pool PM design tokens (mirror of packages/ui palette — keep in sync).
- * Light values live in @theme; dark values override the same variables.
+ * Pool PM — "Lagoon & Limestone". Colors mirror packages/ui `palette`
+ * (packages/ui/test/sync-css.test.ts fails if they drift). Light values live in
+ * @theme; dark ("night swim") overrides the same variables.
  */
 @theme {
-  --color-background: #f3f6f9;
+  --color-background: #f5f2ec;
   --color-card: #ffffff;
-  --color-surface: #eef3f7;
-  --color-muted: #e2e9f0;
-  --color-border: #c9d4de;
-
-  --color-foreground: #0d1a26;
-  --color-muted-foreground: #4a5b6c;
-
-  --color-primary: #0a5ea8;
+  --color-surface: #faf8f4;
+  --color-muted: #ece7de;
+  --color-border: #ded6c9;
+  --color-foreground: #0a2230;
+  --color-muted-foreground: #54636b;
+  --color-primary: #0a6c78;
   --color-primary-foreground: #ffffff;
-  --color-primary-soft: #dcecfa;
-  --color-accent: #f2a900;
-  --color-accent-foreground: #1a1300;
+  --color-primary-soft: #dcefef;
+  --color-accent: #f2a93b;
+  --color-accent-foreground: #2a1a00;
+  --color-accent-ink: #8f5300;
+  --color-success: #126b4c;
+  --color-success-soft: #dcf1e6;
+  --color-warning: #954708;
+  --color-warning-soft: #fbeed8;
+  --color-destructive: #b8352a;
+  --color-destructive-soft: #fbe4e0;
+  --color-info: #1e5aa0;
+  --color-info-soft: #e1ebf7;
+  --color-hero: #0a2230;
+  --color-hero-foreground: #f5f2ec;
+  --color-hero-muted: #a7bcc3;
+  --color-glow: #2bd4e3;
 
-  --color-success: #0b6b4c;
-  --color-success-soft: #dcf3ea;
-  --color-warning: #9a4508;
-  --color-warning-soft: #fdf0dc;
-  --color-destructive: #c42b2b;
-  --color-destructive-soft: #fbe3e3;
-  --color-info: #0b7285;
-  --color-info-soft: #dcf1f4;
-
-  /* Fonts: names match the keys passed to useFonts in src/app/_layout.tsx */
+  /* Manrope for the interface, Fraunces for display. Names match useFonts keys in src/app/_layout.tsx. */
   --font-sans: "sans-regular";
   --font-sans-light: "sans-light";
   --font-sans-medium: "sans-medium";
   --font-sans-semibold: "sans-semibold";
   --font-sans-bold: "sans-bold";
   --font-sans-extrabold: "sans-extrabold";
+  --font-display: "display-semibold";
+  --font-display-bold: "display-bold";
 }
 
 :root {
@@ -52,54 +57,120 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #0a1117;
-    --color-card: #111b24;
-    --color-surface: #16222d;
-    --color-muted: #1d2b37;
-    --color-border: #2b3d4c;
-
-    --color-foreground: #e9eef4;
-    --color-muted-foreground: #9badbe;
-
-    --color-primary: #4da6ff;
-    --color-primary-foreground: #04121f;
-    --color-primary-soft: #12304d;
-    --color-accent: #ffc233;
-    --color-accent-foreground: #1a1300;
-
-    --color-success: #3dd598;
+    --color-background: #071319;
+    --color-card: #0e1f27;
+    --color-surface: #12262f;
+    --color-muted: #183139;
+    --color-border: #24414b;
+    --color-foreground: #e8f1f2;
+    --color-muted-foreground: #97adb4;
+    --color-primary: #3ccfdb;
+    --color-primary-foreground: #03171d;
+    --color-primary-soft: #0e3940;
+    --color-accent: #f7b955;
+    --color-accent-foreground: #2a1a00;
+    --color-accent-ink: #f7b955;
+    --color-success: #4ad69b;
     --color-success-soft: #0f3326;
     --color-warning: #f5a524;
     --color-warning-soft: #3a2a0b;
-    --color-destructive: #ff6b6b;
-    --color-destructive-soft: #3d1717;
-    --color-info: #38bdf8;
-    --color-info-soft: #0d2e3d;
+    --color-destructive: #ff7a6b;
+    --color-destructive-soft: #3d1a17;
+    --color-info: #7ab0f2;
+    --color-info-soft: #13284a;
+    --color-hero: #0b2c38;
+    --color-hero-foreground: #e8f1f2;
+    --color-hero-muted: #94b3bb;
+    --color-glow: #3ccfdb;
   }
 }
 
-/* Shared component utilities */
+/* ---------------------------------------------------------------------------
+ * Component vocabulary. Screens compose these names instead of long class
+ * strings, so the look stays consistent and can be tuned in one place.
+ * ------------------------------------------------------------------------- */
+
 @utility screen {
   @apply flex-1 bg-background;
 }
+
+/* Surfaces */
 @utility card {
-  @apply rounded-2xl border border-border bg-card p-4;
+  @apply rounded-3xl border border-border bg-card p-4;
+}
+@utility card-flat {
+  @apply rounded-2xl bg-surface p-4;
+}
+@utility hero {
+  @apply overflow-hidden rounded-3xl bg-hero p-5;
+}
+@utility tile {
+  @apply min-h-24 flex-1 rounded-2xl border border-border bg-card px-4 py-3;
+}
+@utility hairline {
+  @apply h-px bg-border;
+}
+
+/* Type */
+@utility display {
+  @apply font-display text-4xl text-foreground;
 }
 @utility h1 {
-  @apply font-sans-extrabold text-2xl text-foreground;
+  @apply font-display text-[28px] leading-9 text-foreground;
 }
 @utility h2 {
   @apply font-sans-bold text-xl text-foreground;
 }
 @utility h3 {
-  @apply font-sans-semibold text-lg text-foreground;
+  @apply font-sans-bold text-lg text-foreground;
 }
 @utility body {
-  @apply font-sans text-base text-foreground;
+  @apply font-sans text-base leading-6 text-foreground;
 }
 @utility caption {
-  @apply font-sans text-sm text-muted-foreground;
+  @apply font-sans text-sm leading-5 text-muted-foreground;
 }
 @utility label {
   @apply font-sans-semibold text-sm text-muted-foreground;
+}
+/* Small uppercase tracked line above a title ("TODAY ON SITE") */
+@utility kicker {
+  @apply font-sans-bold text-[11px] uppercase tracking-[1.6px] text-accent-ink;
+}
+@utility stat-value {
+  @apply font-display text-[26px] leading-8 text-foreground;
+}
+@utility stat-label {
+  @apply font-sans-bold text-[11px] uppercase tracking-wide text-muted-foreground;
+}
+
+/* Hero (inverted deep-water card) content */
+@utility hero-kicker {
+  @apply font-sans-bold text-[11px] uppercase tracking-[1.6px] text-glow;
+}
+@utility hero-title {
+  @apply font-display text-3xl leading-10 text-hero-foreground;
+}
+@utility hero-text {
+  @apply font-sans text-sm leading-5 text-hero-muted;
+}
+@utility hero-value {
+  @apply font-display text-2xl text-hero-foreground;
+}
+@utility hero-divider {
+  @apply my-4 h-px bg-hero-foreground/15;
+}
+
+/* Chips, pills, avatars */
+@utility chip {
+  @apply min-h-10 flex-row items-center gap-1.5 rounded-full border border-border bg-card px-4;
+}
+@utility chip-active {
+  @apply border-hero bg-hero;
+}
+@utility avatar {
+  @apply size-11 items-center justify-center rounded-full bg-primary;
+}
+@utility icon-tile {
+  @apply size-11 items-center justify-center rounded-2xl bg-primary-soft;
 }

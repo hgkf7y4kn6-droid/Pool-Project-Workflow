@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
+import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "@/components/icon";
 import { Text } from "@/components/ui";
@@ -25,7 +26,10 @@ const TABS: TabDef[] = [
   { name: "more", title: "More", icon: "menu" },
 ];
 
-/** Floating pill tab bar (from the MMM design), with labels for clarity in the field. */
+/**
+ * Floating deep-water tab bar. The active tab sits in a lagoon pill; labels
+ * stay visible for clarity in the field, and taps give a selection tick.
+ */
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -42,18 +46,23 @@ export default function TabLayout() {
         tabBarStyle: {
           position: "absolute",
           bottom: Math.max(insets.bottom, 16),
-          height: 72,
-          marginHorizontal: isTablet ? "20%" : 12,
-          borderRadius: 36,
-          backgroundColor: colors.primary,
+          height: 74,
+          marginHorizontal: isTablet ? "22%" : 14,
+          borderRadius: 37,
+          backgroundColor: colors.hero,
           borderTopWidth: 0,
-          elevation: 6,
-          shadowColor: "#000",
-          shadowOpacity: 0.15,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
+          elevation: 10,
+          shadowColor: "#0a2230",
+          shadowOpacity: 0.22,
+          shadowRadius: 18,
+          shadowOffset: { width: 0, height: 8 },
         },
-        tabBarItemStyle: { paddingVertical: 8 },
+        tabBarItemStyle: { paddingVertical: 9 },
+      }}
+      screenListeners={{
+        tabPress: () => {
+          if (Platform.OS !== "web") void Haptics.selectionAsync();
+        },
       }}
     >
       {TABS.map((tab) => {
@@ -67,11 +76,11 @@ export default function TabLayout() {
               href: visible ? undefined : null,
               tabBarAccessibilityLabel: tab.title,
               tabBarIcon: ({ focused }) => (
-                <View className="items-center justify-center gap-0.5">
-                  <View className={clsx("h-9 w-12 items-center justify-center rounded-full", focused && "bg-primary-foreground/20")}>
-                    <Icon name={focused ? tab.icon : (`${tab.icon}-outline` as IconName)} className={clsx("text-2xl", focused ? "text-primary-foreground" : "text-primary-foreground/70")} />
+                <View className="items-center justify-center gap-1">
+                  <View className={clsx("h-8 w-14 items-center justify-center rounded-full", focused && "bg-glow")}>
+                    <Icon name={focused ? tab.icon : (`${tab.icon}-outline` as IconName)} className={clsx("text-[22px]", focused ? "text-hero" : "text-hero-muted")} />
                   </View>
-                  <Text className={clsx("text-[11px] font-sans-semibold", focused ? "text-primary-foreground" : "text-primary-foreground/70")} maxFontSizeMultiplier={1.2}>
+                  <Text className={clsx("text-[11px]", focused ? "font-sans-bold text-hero-foreground" : "font-sans-semibold text-hero-muted")} maxFontSizeMultiplier={1.2}>
                     {tab.title}
                   </Text>
                 </View>

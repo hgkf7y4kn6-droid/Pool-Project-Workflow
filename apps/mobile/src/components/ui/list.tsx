@@ -1,17 +1,24 @@
 import { clsx } from "clsx";
 import { Pressable, TextInput, View } from "react-native";
+import { PressableScale } from "./motion";
 import { useTheme } from "@/hooks/use-theme";
 import { Icon, type IconName } from "../icon";
 import { Text } from "./text";
 
-/** Section heading with optional action (adapted from MMM's ListHeading). */
-export function SectionHeader({ title, actionLabel = "View all", onPress, className }: { title: string; actionLabel?: string; onPress?: () => void; className?: string }) {
+/** Section heading: optional kicker, title, and a quiet "See all ›" link. */
+export function SectionHeader({ title, kicker, actionLabel = "See all", onPress, className }: { title: string; kicker?: string; actionLabel?: string; onPress?: () => void; className?: string }) {
   return (
-    <View className={clsx("mb-3 mt-6 flex-row items-center justify-between", className)}>
-      <Text variant="h2">{title}</Text>
+    <View className={clsx("mb-3 mt-7 flex-row items-end justify-between gap-3", className)}>
+      <View className="flex-1">
+        {kicker ? <Text variant="kicker">{kicker}</Text> : null}
+        <Text variant="h2" accessibilityRole="header">
+          {title}
+        </Text>
+      </View>
       {onPress && (
-        <Pressable accessibilityRole="button" onPress={onPress} className="min-h-11 justify-center rounded-full bg-muted px-4">
-          <Text className="font-sans-semibold text-sm text-muted-foreground">{actionLabel}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${actionLabel}: ${title}`} onPress={onPress} hitSlop={8} className="min-h-11 flex-row items-center gap-0.5 px-1 active:opacity-60">
+          <Text className="font-sans-bold text-sm text-primary">{actionLabel}</Text>
+          <Icon name="chevron-forward" className="text-base text-primary" />
         </Pressable>
       )}
     </View>
@@ -42,7 +49,7 @@ export function ListItem({
       {icon && (
         <View
           className={clsx(
-            "size-11 items-center justify-center rounded-xl",
+            "size-11 items-center justify-center rounded-2xl",
             { primary: "bg-primary-soft", danger: "bg-destructive-soft", warning: "bg-warning-soft", success: "bg-success-soft", muted: "bg-muted" }[iconTone],
           )}
         >
@@ -63,14 +70,14 @@ export function ListItem({
         ) : null}
       </View>
       {right}
-      {onPress && !right && <Icon name="chevron-forward" className="text-xl text-muted-foreground" />}
+      {onPress && !right && <Icon name="chevron-forward" className="text-lg text-muted-foreground/70" />}
     </>
   );
   const cls = clsx("min-h-16 flex-row items-center gap-3 py-3", className);
   return onPress ? (
-    <Pressable accessibilityRole="button" accessibilityHint={accessibilityHint} onPress={onPress} className={clsx(cls, "active:opacity-70")}>
+    <PressableScale accessibilityRole="button" accessibilityHint={accessibilityHint} onPress={onPress} scaleTo={0.985} className={cls}>
       {content}
-    </Pressable>
+    </PressableScale>
   ) : (
     <View className={cls}>{content}</View>
   );
@@ -98,7 +105,7 @@ export function Divider() {
 export function SearchBar({ value, onChangeText, placeholder = "Search", className }: { value: string; onChangeText: (v: string) => void; placeholder?: string; className?: string }) {
   const { colors } = useTheme();
   return (
-    <View className={clsx("min-h-12 flex-row items-center gap-2 rounded-xl border-2 border-border bg-card px-3", className)}>
+    <View className={clsx("min-h-12 flex-row items-center gap-2 rounded-full border border-border bg-card px-4", className)}>
       <Icon name="search" className="text-xl text-muted-foreground" />
       <TextInput
         accessibilityLabel={placeholder}
@@ -122,8 +129,8 @@ export function SearchBar({ value, onChangeText, placeholder = "Search", classNa
 export function Avatar({ name, size = 40 }: { name?: string | null; size?: number }) {
   const letters = (name ?? "?").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2 }} className="items-center justify-center bg-primary">
-      <Text style={{ fontSize: size * 0.38 }} className="font-sans-bold text-primary-foreground">
+    <View style={{ width: size, height: size, borderRadius: size / 2 }} className="items-center justify-center bg-hero">
+      <Text style={{ fontSize: size * 0.4 }} className="font-display text-hero-foreground">
         {letters}
       </Text>
     </View>
@@ -158,7 +165,7 @@ export function DataTable<T>({
     );
   }
   return (
-    <View accessibilityRole="list" className="overflow-hidden rounded-2xl border border-border bg-card">
+    <View accessibilityRole="list" className="overflow-hidden rounded-3xl border border-border bg-card">
       <View className="flex-row border-b border-border bg-surface px-4 py-3">
         {columns.map((c) => (
           <Text key={c.key} variant="label" style={{ flex: c.flex ?? 1 }} className={c.align === "right" ? "text-right" : ""}>

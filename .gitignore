@@ -32,3 +32,4 @@ e2e/.web/
 e2e/.storage-e2e/
 e2e/test-results/
 e2e/playwright-report/
+e2e/screenshots

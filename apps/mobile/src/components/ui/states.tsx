@@ -8,8 +8,8 @@ import { Text } from "./text";
 export function EmptyState({ icon = "file-tray-outline", title, message, action }: { icon?: IconName; title: string; message?: string; action?: { label: string; onPress: () => void } }) {
   return (
     <View className="items-center gap-3 px-6 py-10">
-      <View className="size-16 items-center justify-center rounded-full bg-muted">
-        <Icon name={icon} className="text-3xl text-muted-foreground" />
+      <View className="size-16 items-center justify-center rounded-3xl bg-primary-soft">
+        <Icon name={icon} className="text-3xl text-primary" />
       </View>
       <Text variant="h3" className="text-center">
         {title}
@@ -19,7 +19,7 @@ export function EmptyState({ icon = "file-tray-outline", title, message, action 
           {message}
         </Text>
       ) : null}
-      {action && <Button label={action.label} onPress={action.onPress} variant="secondary" size="md" />}
+      {action && <Button label={action.label} onPress={action.onPress} variant="primary" size="md" icon="add" className="mt-1" />}
     </View>
   );
 }
@@ -56,7 +56,7 @@ export function LoadingState({ rows = 4 }: { rows?: number }) {
   return (
     <View accessibilityLabel="Loading" accessibilityRole="progressbar" className="gap-3 p-4">
       {Array.from({ length: rows }, (_, i) => (
-        <View key={i} className="card gap-2">
+        <View key={i} className="card gap-2.5">
           <Skeleton height={18} width="60%" />
           <Skeleton height={14} width="90%" />
           <Skeleton height={14} width="40%" />

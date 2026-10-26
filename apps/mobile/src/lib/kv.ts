@@ -58,4 +58,10 @@ export const KV_KEYS = {
   lastProjectId: "nav.lastProjectId",
   themePreference: "prefs.theme",
   pushToken: "push.token",
+  /** Per user: `${introSeen}.${userId}` = "1" once the intro tour was finished or skipped. */
+  introSeen: "onboarding.introSeen",
+  /** Per user: getting-started checklist dismissed. */
+  startHereHidden: "onboarding.startHereHidden",
+  /** Per user: getting-started steps the user has opened. */
+  startHereVisited: "onboarding.startHereVisited",
 } as const;

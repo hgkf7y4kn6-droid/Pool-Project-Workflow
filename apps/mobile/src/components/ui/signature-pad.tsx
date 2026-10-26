@@ -52,7 +52,7 @@ export function SignaturePad({ onChange, height = 180 }: { onChange: (dataUrl: s
         <View onLayout={(e) => (width.current = e.nativeEvent.layout.width)} style={{ height, backgroundColor: "#ffffff" }} {...responder.panHandlers}>
           <Svg width="100%" height="100%">
             {[...strokes, current.current].filter((s) => s.length).map((s, i) => (
-              <Path key={i} d={toPath(s)} stroke="#0d1a26" strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <Path key={i} d={toPath(s)} stroke="#0a2230" strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
             ))}
           </Svg>
         </View>

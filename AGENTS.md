@@ -21,7 +21,9 @@ Monorepo (npm workspaces + Turborepo). Read `README.md` and `docs/architecture.m
   - Synced tables need `version`, `change_seq` and `deleted_at`, plus the trigger from `0001_sync_triggers.sql`.
 - **Money** is integer cents. **Dates** are `YYYY-MM-DD`. **IDs** are UUIDs, which clients may generate.
 - **UI**:
-  - Use the components in `apps/mobile/src/components/ui`.
+  - Use the components in `apps/mobile/src/components/ui` and the vocabulary in `global.css` (see `docs/design-system.md`).
+  - Colors come from `packages/ui` tokens; never hard-code hex values in screens.
+  - Lead each main screen with one `HeroCard`, then `QuickAction`s, then detail; wrap sections in `Reveal`.
   - Give interactive elements accessible labels. E2E tests select by role and name.
 
 <!-- BEGIN:turborepo-agent-rules -->

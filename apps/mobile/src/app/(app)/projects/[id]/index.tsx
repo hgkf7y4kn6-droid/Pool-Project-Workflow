@@ -1,13 +1,28 @@
 import { router, useLocalSearchParams, type Href } from "expo-router";
-import { View, Pressable } from "react-native";
+import { View } from "react-native";
 import type { BudgetSummary, Permission, ScheduleSummary } from "@pool/core";
-import { PROJECT_TYPE_LABELS } from "@pool/types";
+import { PROJECT_STATUS_LABELS, PROJECT_TYPE_LABELS } from "@pool/types";
 import { Icon, type IconName } from "@/components/icon";
-import { ProjectStatusBadge } from "@/components/status-badges";
-import { Card, ErrorState, KeyValue, LoadingState, ProgressBar, Screen, SectionHeader, StageTimeline, Stat, Text } from "@/components/ui";
+import {
+  Card,
+  ErrorState,
+  HeroCard,
+  HeroStat,
+  KeyValue,
+  LoadingState,
+  PressableScale,
+  ProgressRing,
+  QuickAction,
+  Reveal,
+  Screen,
+  SectionHeader,
+  StageTimeline,
+  Stat,
+  Text,
+} from "@/components/ui";
 import { useApi, useProject, useStages } from "@/features/data";
-import { useLayout } from "@/hooks/use-theme";
-import { date, money } from "@/lib/format";
+import { useLayout, useTheme } from "@/hooks/use-theme";
+import { date, money, shortDate } from "@/lib/format";
 import { kv, KV_KEYS } from "@/lib/kv";
 import { useSession } from "@/providers/session";
 import { useSync } from "@/providers/sync";
@@ -46,6 +61,7 @@ export default function ProjectDashboardScreen() {
   const { can } = useSession();
   const { syncNow } = useSync();
   const { columns } = useLayout();
+  const { colors } = useTheme();
   const project = useProject(id);
   const stages = useStages(id);
   const remote = useApi<ProjectDashboard>(["project-dashboard", id], `/projects/${id}/dashboard`);
@@ -65,39 +81,57 @@ export default function ProjectDashboardScreen() {
   };
 
   return (
-    <Screen title={p.name} subtitle={`${p.number} · ${PROJECT_TYPE_LABELS[p.type]}`} back onRefresh={() => { void syncNow(); void remote.refetch(); }} refreshing={remote.isFetching}>
-      <Card>
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1 gap-0.5">
-            <Text variant="bodyStrong">{p.clientName}</Text>
-            <Text variant="caption">{p.propertyAddress}</Text>
-            {p.projectManagerId ? <Text variant="caption">PM: {remote.data?.project.projectManagerName ?? p.projectManagerName ?? "Assigned"}</Text> : null}
+    <Screen
+      kicker={`${p.number} · ${PROJECT_TYPE_LABELS[p.type]}`}
+      title={p.name}
+      back
+      onRefresh={() => {
+        void syncNow();
+        void remote.refetch();
+      }}
+      refreshing={remote.isFetching}
+    >
+      <Reveal index={0}>
+        <HeroCard
+          kicker={`${PROJECT_STATUS_LABELS[p.status]} · ${behind ? `Behind${s?.scheduleVarianceDays ? ` ${s.scheduleVarianceDays} days` : ""}` : "On track"}`}
+          title={p.clientName ?? "Client"}
+          subtitle={[p.propertyAddress, p.projectManagerId ? `PM ${remote.data?.project.projectManagerName ?? p.projectManagerName ?? ""}`.trim() : null].filter(Boolean).join(" · ")}
+          right={
+            <ProgressRing value={p.completionPct} size={76} stroke={8} color={behind ? colors.accent : colors.glow} track="rgba(255,255,255,0.14)" label="Overall completion">
+              <Text className="font-display text-lg text-hero-foreground">{Math.round(p.completionPct)}%</Text>
+            </ProgressRing>
+          }
+        >
+          <View className="hero-divider" />
+          <View className="flex-row gap-3">
+            <HeroStat value={p.projectedCompletionDate ? shortDate(p.projectedCompletionDate) : "—"} label="Finish" tone={behind ? "warning" : undefined} />
+            <HeroStat value={s?.daysRemaining === null || s?.daysRemaining === undefined ? "—" : String(s.daysRemaining)} label="Days left" />
+            {t ? <HeroStat value={`${t.done}/${t.total}`} label="Tasks" /> : null}
+            {t ? <HeroStat value={String(t.overdue + t.blocked)} label="Issues" tone={t.overdue || t.blocked ? "danger" : undefined} /> : null}
           </View>
-          <ProjectStatusBadge status={p.status} />
-        </View>
-        <View className="mt-4">
-          <ProgressBar value={p.completionPct} showValue label="Overall completion" tone={behind ? "warning" : "primary"} />
-        </View>
-      </Card>
+        </HeroCard>
+      </Reveal>
 
-      <View className="mt-4 flex-row flex-wrap gap-3">
-        {f && can("budget:read") ? (
-          <>
+      <Reveal index={1} className="mt-3 flex-row flex-wrap gap-3">
+        <QuickAction icon="checkbox-outline" label="Tasks" hint={t ? `${t.today} today` : "Checklists & status"} onPress={() => go("tasks")} />
+        {can("photo:create") ? <QuickAction icon="camera-outline" label="Photo" hint="Tagged to this job" tone="accent" onPress={() => router.push({ pathname: "/camera", params: { projectId: p.id } })} /> : null}
+        <QuickAction icon="git-network-outline" label="Schedule" hint="Stages & timing" onPress={() => go("schedule")} />
+        {can("message:read") ? <QuickAction icon="chatbubbles-outline" label="Messages" hint="Team & client" onPress={() => go("messages")} /> : null}
+      </Reveal>
+
+      {f && can("budget:read") ? (
+        <Reveal index={2}>
+          <SectionHeader kicker="Money" title="Budget" onPress={() => go("budget")} actionLabel="Details" />
+          <View className="flex-row flex-wrap gap-3">
             <Stat label="Contract" value={money(f.revenueCents)} hint={f.changeOrderRevenueCents ? `incl. ${money(f.changeOrderRevenueCents)} COs` : undefined} />
             <Stat label="Actual cost" value={money(f.actualCostCents)} hint={`of ${money(f.totalBudgetCents)} budget`} tone={f.actualCostCents > f.totalBudgetCents ? "danger" : "default"} />
             <Stat label="Remaining" value={money(f.remainingBudgetCents)} tone={f.remainingBudgetCents < 0 ? "danger" : "success"} />
-            <Stat label="Projected margin" value={f.projectedMarginPct === null ? "—" : `${f.projectedMarginPct}%`} hint={money(f.projectedProfitCents)} tone={(f.projectedMarginPct ?? 0) < 10 ? "warning" : "success"} />
-          </>
-        ) : null}
-        {t ? (
-          <>
-            <Stat label="Tasks done" value={`${t.done}/${t.total}`} />
-            <Stat label="Overdue / blocked" value={`${t.overdue} / ${t.blocked}`} tone={t.overdue || t.blocked ? "danger" : "success"} />
-          </>
-        ) : null}
-      </View>
+            <Stat label="Margin" value={f.projectedMarginPct === null ? "—" : `${f.projectedMarginPct}%`} hint={`${money(f.projectedProfitCents)} projected profit`} tone={(f.projectedMarginPct ?? 0) < 10 ? "warning" : "success"} />
+          </View>
+        </Reveal>
+      ) : null}
 
-      <SectionHeader title="Schedule" onPress={() => go("schedule")} actionLabel="Details" />
+      <SectionHeader kicker="Timing" title="Schedule" onPress={() => go("schedule")} actionLabel="Details" />
       <Card className="gap-0.5">
         <KeyValue label="Planned start" value={date(p.plannedStartDate)} />
         <KeyValue label="Planned completion" value={date(p.plannedCompletionDate)} />
@@ -106,23 +140,25 @@ export default function ProjectDashboardScreen() {
         <KeyValue label="Schedule variance" value={s?.scheduleVarianceDays ? `${s.scheduleVarianceDays > 0 ? "+" : ""}${s.scheduleVarianceDays} days` : behind ? "Behind" : "On track"} />
       </Card>
 
-      <SectionHeader title="Construction progress" />
+      <SectionHeader kicker="Stages" title="Construction progress" />
       <Card>{stages.data?.length ? <StageTimeline stages={stages.data} /> : <Text variant="caption">No stages yet.</Text>}</Card>
 
-      <SectionHeader title="Project workspace" />
+      <SectionHeader kicker="Everything for this job" title="Project workspace" />
       <View className="flex-row flex-wrap gap-3">
         {SECTIONS.filter((x) => !x.permission || can(x.permission)).map((x) => (
-          <Pressable
+          <PressableScale
             key={x.key}
             accessibilityRole="button"
             accessibilityLabel={x.title}
             onPress={() => go(x.key)}
             style={{ width: columns === 1 ? "47.5%" : columns === 2 ? "31.5%" : "23.5%" }}
-            className="min-h-24 items-start justify-between rounded-2xl border border-border bg-card p-4 active:bg-muted"
+            className="min-h-28 justify-between gap-3 rounded-3xl border border-border bg-card p-4"
           >
-            <Icon name={x.icon} className="text-2xl text-primary" />
-            <Text variant="bodyStrong">{x.title}</Text>
-          </Pressable>
+            <View className="icon-tile">
+              <Icon name={x.icon} className="text-xl text-primary" />
+            </View>
+            <Text className="font-sans-bold text-[15px] text-foreground">{x.title}</Text>
+          </PressableScale>
         ))}
       </View>
     </Screen>

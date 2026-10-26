@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { PriorityBadge, TaskStatusBadge } from "@/components/status-badges";
-import { Card, Chips, EmptyState, EntitySyncBadge, IconButton, Screen, Text } from "@/components/ui";
+import { Card, Chips, EmptyState, EntitySyncBadge, Button, Screen, Text } from "@/components/ui";
 import { useProject, useStages, useTasks } from "@/features/data";
 import { date } from "@/lib/format";
 import { useSession } from "@/providers/session";
@@ -24,7 +24,7 @@ export default function ProjectTasks() {
       title="Tasks"
       subtitle={project.data?.name}
       back
-      actions={can("task:create") ? <IconButton icon="add-circle" tone="primary" label="New task" onPress={() => router.push({ pathname: "/tasks/new", params: { projectId: id } })} /> : null}
+      actions={can("task:create") ? <Button label="New" icon="add" size="sm" className="min-h-11 rounded-full px-4" accessibilityLabel="New task" onPress={() => router.push({ pathname: "/tasks/new", params: { projectId: id } })} /> : null}
     >
       <Chips className="mb-3" value={due} onChange={setDue} options={[{ value: "open", label: "Open" }, { value: "overdue", label: "Overdue" }, { value: "all", label: "All" }]} />
       {!groups.length && <EmptyState icon="checkbox-outline" title="No tasks" />}

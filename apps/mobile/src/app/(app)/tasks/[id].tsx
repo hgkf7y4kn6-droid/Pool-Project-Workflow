@@ -6,6 +6,7 @@ import type { ChecklistItem, TaskStatus } from "@pool/types";
 import { Icon } from "@/components/icon";
 import { PriorityBadge, TaskStatusBadge } from "@/components/status-badges";
 import {
+  Badge,
   BottomSheet,
   Button,
   Card,
@@ -78,16 +79,16 @@ export default function TaskDetail() {
     router.push({ pathname: "/camera", params: { projectId: t.projectId, taskId: t.id, stageId: t.stageId ?? "", checklistItemId: checklistItemId ?? "" } });
 
   return (
-    <Screen title={t.title} subtitle={project.data?.name} back>
-      <View className="mb-2 flex-row flex-wrap items-center gap-2">
+    <Screen kicker={project.data?.name} title={t.title} back>
+      <View className="mb-3 flex-row flex-wrap items-center gap-2">
         <TaskStatusBadge status={t.status} />
         <PriorityBadge priority={t.priority} />
         <EntitySyncBadge type="task" id={t.id} />
-        {t.weatherSensitive && <Text variant="caption">☂ weather-sensitive</Text>}
+        {t.weatherSensitive && <Badge label="Weather-sensitive" tone="info" icon="rainy-outline" />}
       </View>
 
       {canEdit && (
-        <View className="gap-2">
+        <View className="card gap-2 bg-surface">
           <View className="flex-row gap-2">
             {t.status !== "in_progress" && t.status !== "done" && <Button label="Start" icon="play" className="flex-1" onPress={() => void setStatus("in_progress")} />}
             {t.status !== "done" && <Button label="Complete" icon="checkmark-done" variant={t.status === "in_progress" ? "primary" : "outline"} className="flex-1" onPress={() => void setStatus("done")} />}

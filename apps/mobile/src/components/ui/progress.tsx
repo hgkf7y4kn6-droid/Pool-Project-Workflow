@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import { View } from "react-native";
+import { PressableScale } from "./motion";
 import { Text } from "./text";
 
 export function ProgressBar({ value, tone = "primary", label, showValue }: { value: number; tone?: "primary" | "success" | "warning" | "danger"; label?: string; showValue?: boolean }) {
@@ -13,23 +14,43 @@ export function ProgressBar({ value, tone = "primary", label, showValue }: { val
           {showValue ? <Text className="font-sans-semibold text-sm text-foreground">{pct}%</Text> : null}
         </View>
       )}
-      <View className="h-2.5 overflow-hidden rounded-full bg-muted">
+      <View className="h-2 overflow-hidden rounded-full bg-muted">
         <View className={clsx("h-full rounded-full", color)} style={{ width: `${pct}%` }} />
       </View>
     </View>
   );
 }
 
-/** Compact KPI tile for dashboards. */
-export function Stat({ label, value, hint, tone = "default" }: { label: string; value: string; hint?: string; tone?: "default" | "success" | "warning" | "danger" }) {
+/** KPI tile: uppercase label, a display-serif figure and an optional hint. */
+export function Stat({ label, value, hint, tone = "default", onPress }: { label: string; value: string; hint?: string; tone?: "default" | "success" | "warning" | "danger"; onPress?: () => void }) {
   const color = { default: "text-foreground", success: "text-success", warning: "text-warning", danger: "text-destructive" }[tone];
-  return (
-    <View accessible accessibilityLabel={`${label}: ${value}${hint ? `, ${hint}` : ""}`} className="min-w-[46%] flex-1 rounded-2xl border border-border bg-card p-4">
-      <Text variant="label">{label}</Text>
-      <Text className={clsx("mt-1 font-sans-extrabold text-2xl", color)} numberOfLines={1} adjustsFontSizeToFit>
+  const dot = { default: null, success: "bg-success", warning: "bg-accent", danger: "bg-destructive" }[tone];
+  const body = (
+    <>
+      <View className="flex-row items-center gap-1.5">
+        {dot ? <View className={clsx("size-2 rounded-full", dot)} /> : null}
+        <Text className="stat-label" numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Text variant="stat" className={clsx("mt-1.5", color)} numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </Text>
-      {hint ? <Text variant="caption">{hint}</Text> : null}
+      {hint ? (
+        <Text variant="caption" numberOfLines={2}>
+          {hint}
+        </Text>
+      ) : null}
+    </>
+  );
+  const a11y = `${label}: ${value}${hint ? `, ${hint}` : ""}`;
+  return onPress ? (
+    <PressableScale accessibilityRole="button" accessibilityLabel={a11y} onPress={onPress} className="tile min-w-[46%]">
+      {body}
+    </PressableScale>
+  ) : (
+    <View accessible accessibilityLabel={a11y} className="tile min-w-[46%]">
+      {body}
     </View>
   );
 }

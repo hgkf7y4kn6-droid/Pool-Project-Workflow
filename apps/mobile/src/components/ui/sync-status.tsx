@@ -1,10 +1,11 @@
 import { clsx } from "clsx";
 import { router } from "expo-router";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useEntitySyncStatus } from "@/hooks/use-sync-status";
 import { fromNow } from "@/lib/format";
 import { useSync } from "@/providers/sync";
 import { Icon } from "../icon";
+import { PressableScale } from "./motion";
 import { Text } from "./text";
 
 /**
@@ -31,18 +32,23 @@ export function SyncPill() {
     label = `${state.pending} waiting to sync`;
     tone = "text-info";
   }
+  // When everything is synced the indicator is a quiet icon; it only grows
+  // into a labelled pill when there is something the user should know.
+  const quiet = !busy && tone === "text-success";
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Sync status: ${label}. Open offline queue.`}
       onPress={() => router.push("/offline-queue")}
-      className="min-h-11 flex-row items-center gap-1.5 rounded-full bg-muted px-3"
+      className={clsx("min-h-11 flex-row items-center justify-center gap-1.5 rounded-full", quiet ? "w-11 bg-card border border-border" : "border border-border bg-card px-3")}
     >
       {busy ? <ActivityIndicator size="small" /> : <Icon name={icon} className={clsx("text-lg", tone)} />}
-      <Text className="max-w-36 font-sans-semibold text-xs text-foreground" numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
+      {!quiet && (
+        <Text className="max-w-40 font-sans-semibold text-xs text-foreground" numberOfLines={1}>
+          {label}
+        </Text>
+      )}
+    </PressableScale>
   );
 }
 
@@ -67,7 +73,7 @@ export function OfflineBanner() {
   const { state } = useSync();
   if (state.online && state.phase !== "offline") return null;
   return (
-    <View accessibilityLiveRegion="polite" className="mb-3 flex-row items-center gap-2 rounded-xl bg-warning-soft p-3">
+    <View accessibilityLiveRegion="polite" className="mb-3 flex-row items-center gap-2 rounded-2xl bg-warning-soft p-3">
       <Icon name="cloud-offline-outline" className="text-xl text-warning" />
       <Text className="flex-1 font-sans-medium text-sm text-foreground">You&apos;re offline. Changes are saved on this device and will sync automatically.</Text>
     </View>

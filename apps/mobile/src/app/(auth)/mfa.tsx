@@ -26,7 +26,7 @@ export default function Mfa() {
   };
 
   return (
-    <AuthShell title="Two-step verification" subtitle="Enter the 6-digit code from your authenticator app.">
+    <AuthShell showBrand={false} title="Two-step verification" subtitle="Enter the 6-digit code from your authenticator app.">
       <View className="gap-4">
         <TextField label="Code" value={code} onChangeText={setCode} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="one-time-code" maxLength={6} error={error} onSubmitEditing={submit} />
         <Button label="Verify" onPress={submit} loading={busy} disabled={code.length !== 6} />

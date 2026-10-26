@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:web": "cd ../apps/mobile && CI=1 expo export --platform web --output-dir ../../e2e/.web",
+    "build:web": "cd ../apps/mobile && CI=1 EXPO_PUBLIC_DISABLE_TOUR=${E2E_DISABLE_TOUR:-1} expo export --clear --platform web --output-dir ../../e2e/.web",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },

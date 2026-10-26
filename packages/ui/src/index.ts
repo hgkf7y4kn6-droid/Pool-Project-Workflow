@@ -11,57 +11,69 @@ import type {
 /**
  * Pool PM design tokens — the single source for colors, type, spacing,
  * radii, elevation and touch sizing. The mobile app mirrors the colors as
- * CSS variables in global.css (NativeWind); keep both in sync.
+ * CSS variables in global.css (NativeWind); a unit test keeps them in sync.
  *
- * Design intent: a durable, field-friendly construction tool. High contrast
- * for outdoor glare (body text ≥ 7:1, secondary text ≥ 4.5:1 on cards), a
- * pool-water blue for brand/primary actions, and safety yellow reserved for
- * warnings and attention states.
+ * Brand: "Lagoon & Limestone". Warm limestone neutrals (the coping stone),
+ * deep-water ink for text and hero surfaces, lagoon teal for brand and
+ * primary actions, and a warm sun amber reserved for highlights. Dark mode is
+ * "night swim": deep water with a glowing pool-light teal.
+ *
+ * Field use: body text ≥ 7:1 and secondary text ≥ 4.5:1 on cards for glare.
  */
 export const palette = {
   light: {
-    background: "#f3f6f9",
+    background: "#f5f2ec",
     card: "#ffffff",
-    surface: "#eef3f7",
-    muted: "#e2e9f0",
-    border: "#c9d4de",
-    foreground: "#0d1a26",
-    mutedForeground: "#4a5b6c",
-    primary: "#0a5ea8",
+    surface: "#faf8f4",
+    muted: "#ece7de",
+    border: "#ded6c9",
+    foreground: "#0a2230",
+    mutedForeground: "#54636b",
+    primary: "#0a6c78",
     primaryForeground: "#ffffff",
-    primarySoft: "#dcecfa",
-    accent: "#f2a900",
-    accentForeground: "#1a1300",
-    success: "#0b6b4c",
-    successSoft: "#dcf3ea",
-    warning: "#9a4508",
-    warningSoft: "#fdf0dc",
-    destructive: "#c42b2b",
-    destructiveSoft: "#fbe3e3",
-    info: "#0b7285",
-    infoSoft: "#dcf1f4",
+    primarySoft: "#dcefef",
+    accent: "#f2a93b",
+    accentForeground: "#2a1a00",
+    accentInk: "#8f5300",
+    success: "#126b4c",
+    successSoft: "#dcf1e6",
+    warning: "#954708",
+    warningSoft: "#fbeed8",
+    destructive: "#b8352a",
+    destructiveSoft: "#fbe4e0",
+    info: "#1e5aa0",
+    infoSoft: "#e1ebf7",
+    hero: "#0a2230",
+    heroForeground: "#f5f2ec",
+    heroMuted: "#a7bcc3",
+    glow: "#2bd4e3",
   },
   dark: {
-    background: "#0a1117",
-    card: "#111b24",
-    surface: "#16222d",
-    muted: "#1d2b37",
-    border: "#2b3d4c",
-    foreground: "#e9eef4",
-    mutedForeground: "#9badbe",
-    primary: "#4da6ff",
-    primaryForeground: "#04121f",
-    primarySoft: "#12304d",
-    accent: "#ffc233",
-    accentForeground: "#1a1300",
-    success: "#3dd598",
+    background: "#071319",
+    card: "#0e1f27",
+    surface: "#12262f",
+    muted: "#183139",
+    border: "#24414b",
+    foreground: "#e8f1f2",
+    mutedForeground: "#97adb4",
+    primary: "#3ccfdb",
+    primaryForeground: "#03171d",
+    primarySoft: "#0e3940",
+    accent: "#f7b955",
+    accentForeground: "#2a1a00",
+    accentInk: "#f7b955",
+    success: "#4ad69b",
     successSoft: "#0f3326",
     warning: "#f5a524",
     warningSoft: "#3a2a0b",
-    destructive: "#ff6b6b",
-    destructiveSoft: "#3d1717",
-    info: "#38bdf8",
-    infoSoft: "#0d2e3d",
+    destructive: "#ff7a6b",
+    destructiveSoft: "#3d1a17",
+    info: "#7ab0f2",
+    infoSoft: "#13284a",
+    hero: "#0b2c38",
+    heroForeground: "#e8f1f2",
+    heroMuted: "#94b3bb",
+    glow: "#3ccfdb",
   },
 } as const;
 
@@ -70,7 +82,7 @@ export type ColorToken = keyof (typeof palette)["light"];
 
 export const spacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
 
-export const radius = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999 } as const;
+export const radius = { sm: 8, md: 12, lg: 16, xl: 24, xxl: 28, pill: 999 } as const;
 
 /** Type scale (px). Body is 16 minimum for outdoor legibility. */
 export const typography = {
@@ -83,7 +95,10 @@ export const typography = {
   display: { size: 32, lineHeight: 40 },
 } as const;
 
+/** Manrope for the interface; Fraunces (display) for headlines and hero numbers. */
 export const fonts = {
+  display: "display-semibold",
+  displayBold: "display-bold",
   regular: "sans-regular",
   medium: "sans-medium",
   semibold: "sans-semibold",
@@ -96,8 +111,18 @@ export const touch = { min: 48, field: 56, fab: 64 } as const;
 
 export const elevation = {
   none: { shadowOpacity: 0, elevation: 0 },
-  card: { shadowColor: "#0d1a26", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
-  raised: { shadowColor: "#0d1a26", shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  card: { shadowColor: "#0a2230", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  raised: { shadowColor: "#0a2230", shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+} as const;
+
+/** Motion: one easing family (expo-out) and three durations, so the app moves consistently. */
+export const motion = {
+  fast: 160,
+  base: 280,
+  slow: 520,
+  /** Stagger between list items on first reveal (capped at 8 items). */
+  stagger: 45,
+  pressScale: 0.97,
 } as const;
 
 export const breakpoints = { tablet: 768, desktop: 1100 } as const;

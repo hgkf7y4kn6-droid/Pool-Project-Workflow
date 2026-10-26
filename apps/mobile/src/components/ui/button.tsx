@@ -1,19 +1,21 @@
 import { clsx } from "clsx";
 import * as Haptics from "expo-haptics";
 import { ActivityIndicator, Platform, Pressable, View, type PressableProps } from "react-native";
+import { PressableScale } from "./motion";
 import { Icon, type IconName } from "../icon";
 import { Text } from "./text";
 
-type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent";
+type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent" | "dark";
 type Size = "sm" | "md" | "lg";
 
 const CONTAINER: Record<Variant, string> = {
   primary: "bg-primary",
   secondary: "bg-primary-soft",
-  outline: "border-2 border-border bg-card",
+  outline: "border border-border bg-card",
   ghost: "bg-transparent",
   destructive: "bg-destructive",
   accent: "bg-accent",
+  dark: "bg-hero",
 };
 const LABEL: Record<Variant, string> = {
   primary: "text-primary-foreground",
@@ -22,6 +24,7 @@ const LABEL: Record<Variant, string> = {
   ghost: "text-primary",
   destructive: "text-primary-foreground",
   accent: "text-accent-foreground",
+  dark: "text-hero-foreground",
 };
 // Heights honour the 48dp minimum; "lg" (56dp) is the default for field actions.
 const SIZE: Record<Size, string> = { sm: "min-h-12 px-4", md: "min-h-12 px-5", lg: "min-h-14 px-6" };
@@ -55,7 +58,7 @@ export function Button({
 }: ButtonProps) {
   const inactive = disabled || loading;
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
@@ -65,7 +68,7 @@ export function Button({
         onPress?.(e);
       }}
       className={clsx(
-        "flex-row items-center justify-center gap-2 rounded-xl active:opacity-80",
+        "flex-row items-center justify-center gap-2 rounded-2xl",
         CONTAINER[variant],
         SIZE[size],
         fullWidth && "w-full",
@@ -75,7 +78,7 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === "primary" || variant === "destructive" ? "#fff" : undefined} />
+        <ActivityIndicator color={variant === "primary" || variant === "destructive" || variant === "dark" ? "#fff" : undefined} />
       ) : (
         icon && <Icon name={icon} className={clsx("text-xl", LABEL[variant])} />
       )}
@@ -83,7 +86,7 @@ export function Button({
         {label}
       </Text>
       {iconRight && !loading && <Icon name={iconRight} className={clsx("text-xl", LABEL[variant])} />}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -110,7 +113,7 @@ export function IconButton({
       hitSlop={8}
       disabled={disabled}
       onPress={onPress}
-      className={clsx("size-12 items-center justify-center rounded-xl active:bg-muted", disabled && "opacity-40", className)}
+      className={clsx("size-12 items-center justify-center rounded-full active:bg-muted", disabled && "opacity-40", className)}
     >
       <Icon
         name={icon}
@@ -124,14 +127,16 @@ export function IconButton({
 export function Fab({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   return (
     <View pointerEvents="box-none" className="absolute bottom-28 right-5">
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={label}
         onPress={onPress}
-        className="size-16 items-center justify-center rounded-full bg-primary shadow-lg active:opacity-80"
+        haptics
+        scaleTo={0.92}
+        className="size-16 items-center justify-center rounded-full bg-primary shadow-lg"
       >
         <Icon name={icon} className="text-3xl text-primary-foreground" />
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }

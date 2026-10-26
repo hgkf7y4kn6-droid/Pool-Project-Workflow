@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { FlatList, View } from "react-native";
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, PROJECT_TYPES, PROJECT_TYPE_LABELS, type ProjectStatus, type ProjectType } from "@pool/types";
 import { ProjectStatusBadge } from "@/components/status-badges";
-import { BottomSheet, Button, Card, Chips, EmptyState, IconButton, LoadingState, ProgressBar, Screen, SearchBar, Select, Text } from "@/components/ui";
+import { BottomSheet, Button, Card, Chips, EmptyState, LoadingState, ProgressBar, Screen, SearchBar, Select, Text } from "@/components/ui";
 import { useProjects, type LocalProject } from "@/features/data";
 import { useLayout } from "@/hooks/use-theme";
 import { date } from "@/lib/format";
@@ -39,7 +39,7 @@ export default function Projects() {
     <Screen
       title="Projects"
       scroll={false}
-      actions={can("project:create") ? <IconButton icon="add-circle" label="New project" tone="primary" onPress={() => router.push("/projects/new")} /> : null}
+      actions={can("project:create") ? <Button label="New" icon="add" size="sm" className="min-h-11 rounded-full px-4" accessibilityLabel="New project" onPress={() => router.push("/projects/new")} /> : null}
     >
       <View className="gap-3 pb-3">
         <View className="flex-row gap-2">

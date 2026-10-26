@@ -5,6 +5,7 @@ import { SafeAreaView } from "../safe-area-view";
 import { IconButton } from "./button";
 import { Text } from "./text";
 import { SyncPill } from "./sync-status";
+import { useTheme } from "@/hooks/use-theme";
 
 /**
  * Standard screen: safe area, header (back, title, actions, sync status),
@@ -12,6 +13,7 @@ import { SyncPill } from "./sync-status";
  */
 export function Screen({
   title,
+  kicker,
   subtitle,
   back,
   actions,
@@ -24,6 +26,8 @@ export function Screen({
   footer,
 }: {
   title?: string;
+  /** Small uppercase line above the title (e.g. a project number). */
+  kicker?: string | null;
   subtitle?: string | null;
   back?: boolean;
   actions?: React.ReactNode;
@@ -35,12 +39,18 @@ export function Screen({
   padded?: boolean;
   footer?: React.ReactNode;
 }) {
+  const { colors } = useTheme();
   const header = (title || back) && (
-    <View className="flex-row items-center gap-1 px-3 pb-2 pt-1">
+    <View className="w-full max-w-5xl flex-row items-center gap-1 self-center px-3 pb-3 pt-2">
       {back && <IconButton icon="chevron-back" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))} />}
       <View className={clsx("flex-1", !back && "pl-2")}>
+        {kicker ? (
+          <Text variant="kicker" numberOfLines={1}>
+            {kicker}
+          </Text>
+        ) : null}
         {title ? (
-          <Text variant="h1" numberOfLines={1}>
+          <Text variant="h1" numberOfLines={2}>
             {title}
           </Text>
         ) : null}
@@ -50,8 +60,8 @@ export function Screen({
           </Text>
         ) : null}
       </View>
-      {showSync && <SyncPill />}
       {actions}
+      {showSync && <SyncPill />}
     </View>
   );
   const body = <View className={clsx("w-full max-w-5xl self-center", padded && "px-4")}>{children}</View>;
@@ -61,8 +71,8 @@ export function Screen({
       {scroll ? (
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerClassName="pb-32"
-          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}
+          contentContainerClassName="pb-36"
+          refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} /> : undefined}
         >
           {body}
         </ScrollView>

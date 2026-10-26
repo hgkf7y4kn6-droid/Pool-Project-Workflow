@@ -6,6 +6,8 @@ import { useProjects } from "@/features/data";
 import { config } from "@/lib/config";
 import { getJSON, KV_KEYS, setJSON } from "@/lib/kv";
 import { useSession } from "@/providers/session";
+import { resetIntro } from "@/components/onboarding/intro-tour";
+import { showStartHere } from "@/components/onboarding/start-here";
 import { useSync } from "@/providers/sync";
 
 /** Security (biometrics, sessions, MFA), offline storage and account. */
@@ -35,6 +37,30 @@ export default function Settings() {
           <Switch accessibilityLabel="Biometric unlock" disabled={!biometricsAvailable} value={biometricsEnabled} onValueChange={(v) => void setBiometricsEnabled(v)} />
         </View>
         <ListItem icon="key-outline" title="Two-step verification" subtitle={user?.mfaEnabled ? "On" : "Off"} onPress={() => router.push("/two-step")} />
+      </Card>
+
+      <SectionHeader title="Help" />
+      <Card className="py-1">
+        <ListItem
+          icon="play-circle-outline"
+          title="Replay the welcome tour"
+          subtitle="A 30-second refresher on the essentials"
+          onPress={() => {
+            if (!user) return;
+            resetIntro(user.id);
+            router.replace("/dashboard");
+          }}
+        />
+        <ListItem
+          icon="list-outline"
+          title="Show getting started"
+          subtitle="Bring back the setup checklist on Home"
+          onPress={() => {
+            if (!user) return;
+            showStartHere(user.id);
+            router.replace("/dashboard");
+          }}
+        />
       </Card>
 
       <SectionHeader title="Offline projects" />

@@ -136,6 +136,7 @@ The short version is below. [docs/deployment.md](docs/deployment.md) has the ful
 ## Documentation
 
 - [Architecture and decisions](docs/architecture.md)
+- [Design system: brand, type, motion and UX patterns](docs/design-system.md)
 - [API reference](docs/api.md)
 - [Offline-first and sync](docs/offline-sync.md)
 - [Security model](docs/security.md)

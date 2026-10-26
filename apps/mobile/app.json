@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pool PM",
     "slug": "pool-project-workflow",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "poolpm",
@@ -21,7 +21,7 @@
     "android": {
       "package": "com.poolpm.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0A5EA8",
+        "backgroundColor": "#0a2230",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -36,7 +36,12 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "themeColor": "#0a2230",
+      "backgroundColor": "#f5f2ec",
+      "name": "Pool PM",
+      "shortName": "Pool PM",
+      "description": "Run every pool build from lead to warranty \u2014 schedule, crews, photos, change orders and client approvals, online or off."
     },
     "plugins": [
       "expo-router",
@@ -46,11 +51,12 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#f3f6f9",
+          "backgroundColor": "#f5f2ec",
           "dark": {
-            "backgroundColor": "#0a1117"
+            "backgroundColor": "#071319",
+            "image": "./assets/images/splash-icon.png"
           }
         }
       ],
@@ -58,12 +64,14 @@
         "expo-font",
         {
           "fonts": [
-            "./assets/fonts/PlusJakartaSans-Regular.ttf",
-            "./assets/fonts/PlusJakartaSans-Bold.ttf",
-            "./assets/fonts/PlusJakartaSans-Medium.ttf",
-            "./assets/fonts/PlusJakartaSans-SemiBold.ttf",
-            "./assets/fonts/PlusJakartaSans-ExtraBold.ttf",
-            "./assets/fonts/PlusJakartaSans-Light.ttf"
+            "./assets/fonts/Manrope-Light.ttf",
+            "./assets/fonts/Manrope-Regular.ttf",
+            "./assets/fonts/Manrope-Medium.ttf",
+            "./assets/fonts/Manrope-SemiBold.ttf",
+            "./assets/fonts/Manrope-Bold.ttf",
+            "./assets/fonts/Manrope-ExtraBold.ttf",
+            "./assets/fonts/Fraunces-SemiBold.ttf",
+            "./assets/fonts/Fraunces-Bold.ttf"
           ]
         }
       ],
@@ -103,6 +111,9 @@
     "updates": {
       "url": "https://u.expo.dev/bf141886-8bab-41b9-ab69-c1baf17d700f"
     },
-    "owner": "richesdigitalventuress-team"
+    "owner": "richesdigitalventuress-team",
+    "androidStatusBar": {
+      "backgroundColor": "#f5f2ec"
+    }
   }
 }

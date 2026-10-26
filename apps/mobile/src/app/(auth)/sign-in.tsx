@@ -35,7 +35,7 @@ export default function SignIn() {
   };
 
   return (
-    <AuthShell title="Pool PM" subtitle="Sign in to manage your projects">
+    <AuthShell title="Welcome back" subtitle="Sign in to see today's jobs, crews and approvals.">
       <View className="gap-4">
         <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="username" icon="mail-outline" error={fieldErrors.email} />
         <TextField label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" textContentType="password" icon="lock-closed-outline" error={fieldErrors.password} onSubmitEditing={submit} returnKeyType="go" />
@@ -46,12 +46,17 @@ export default function SignIn() {
         ) : null}
         <Button label="Sign in" onPress={submit} loading={busy} fullWidth />
         <Link href="/forgot-password" asChild>
-          <Button label="Forgot password or email me a link" variant="ghost" size="md" />
+          <Button label="Forgot your password? Email me a sign-in link" variant="ghost" size="md" />
         </Link>
       </View>
-      <View className="items-center">
+      <View className="gap-3">
+        <View className="flex-row items-center gap-3">
+          <View className="hairline flex-1" />
+          <Text variant="caption">New to Pool PM?</Text>
+          <View className="hairline flex-1" />
+        </View>
         <Link href="/register" asChild>
-          <Button label="New company? Create an account" variant="outline" size="md" fullWidth />
+          <Button label="Set up your company — free" variant="outline" size="md" fullWidth />
         </Link>
       </View>
     </AuthShell>

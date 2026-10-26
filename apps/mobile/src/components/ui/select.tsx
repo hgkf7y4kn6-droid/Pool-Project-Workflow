@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { Icon } from "../icon";
 import { BottomSheet } from "./sheet";
 import { Text } from "./text";
@@ -82,7 +83,7 @@ export function Select<T extends string>({
   );
 }
 
-/** Horizontal single-select chips (filters, segmented choices). */
+/** Horizontal, scrollable single-select chips (filters). The active chip uses the deep-water ink. */
 export function Chips<T extends string>({
   options,
   value,
@@ -95,7 +96,7 @@ export function Chips<T extends string>({
   className?: string;
 }) {
   return (
-    <View className={clsx("flex-row flex-wrap gap-2", className)}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className={clsx("-mx-4 grow-0", className)} contentContainerClassName="gap-2 px-4">
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -103,21 +104,24 @@ export function Chips<T extends string>({
             key={o.value}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            onPress={() => onChange(o.value)}
-            className={clsx("min-h-11 justify-center rounded-full border-2 px-4", active ? "border-primary bg-primary" : "border-border bg-card")}
+            onPress={() => {
+              if (Platform.OS !== "web" && !active) void Haptics.selectionAsync();
+              onChange(o.value);
+            }}
+            className={clsx("chip justify-center", active && "chip-active")}
           >
-            <Text className={clsx("font-sans-semibold text-sm", active ? "text-primary-foreground" : "text-foreground")}>{o.label}</Text>
+            <Text className={clsx("text-sm", active ? "font-sans-bold text-hero-foreground" : "font-sans-semibold text-foreground")}>{o.label}</Text>
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 
 /** Segmented control for 2–4 views (Day / Week / Month). */
 export function Segmented<T extends string>({ options, value, onChange }: { options: Option<T>[]; value: T; onChange: (v: T) => void }) {
   return (
-    <View accessibilityRole="tablist" className="flex-row rounded-xl bg-muted p-1">
+    <View accessibilityRole="tablist" className="flex-row rounded-2xl bg-muted p-1">
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -126,7 +130,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(o.value)}
-            className={clsx("min-h-11 flex-1 items-center justify-center rounded-lg", active && "bg-card shadow-sm")}
+            className={clsx("min-h-11 flex-1 items-center justify-center rounded-xl", active && "bg-card shadow-sm")}
           >
             <Text className={clsx("font-sans-semibold text-sm", active ? "text-foreground" : "text-muted-foreground")}>{o.label}</Text>
           </Pressable>

@@ -31,9 +31,9 @@ export const TextField = forwardRef<TextInput, FieldProps>(function TextField(
       )}
       <View
         className={clsx(
-          "flex-row items-center gap-2 rounded-xl border-2 bg-card px-4",
+          "flex-row items-center gap-2 rounded-2xl border-[1.5px] bg-card px-4",
           multiline ? "min-h-28 items-start py-3" : "min-h-14",
-          error ? "border-destructive" : focused ? "border-primary" : "border-border",
+          error ? "border-destructive" : focused ? "border-primary bg-surface" : "border-border",
         )}
       >
         {icon && <Icon name={icon} className="text-xl text-muted-foreground" />}
