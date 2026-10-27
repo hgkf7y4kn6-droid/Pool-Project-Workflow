@@ -64,6 +64,8 @@ export function createDb(options: CreateDbOptions): { db: Database; pool: pg.Poo
     statement_timeout: options.statementTimeoutMs ?? 15_000,
     // Poolers (Supabase Supavisor) close idle connections; recycle ours first.
     idleTimeoutMillis: 30_000,
+    // Fail instead of hanging when the host is unreachable (e.g. an IPv6-only address).
+    connectionTimeoutMillis: 15_000,
   });
   // Return bigint (int8) columns that drizzle reads raw (e.g. count(*)) as JS numbers.
   pg.types.setTypeParser(20, (v) => Number(v));
