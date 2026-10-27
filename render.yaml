@@ -1,0 +1,51 @@
+# Render Blueprint for Pool PM. Apply it in the "Pool PM" workspace:
+#   Render dashboard → New → Blueprint → this repository.
+# Then point Cloudflare DNS at it (see docs/deployment.md → "Web app on Render").
+#
+# The API and worker are added here once the Supabase project exists
+# (they need DATABASE_URL / SUPABASE_* secrets).
+services:
+  # Web/admin app: the Expo web export, served as a static SPA.
+  - type: web
+    runtime: static
+    name: pool-pm-web
+    branch: claude/youthful-hypatia-epd25w
+    buildCommand: npm ci --include=dev && npm run web:build
+    staticPublishPath: apps/mobile/dist
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: APP_ENV
+        value: production
+      # Public value baked into the bundle (never a secret).
+      - key: EXPO_PUBLIC_API_URL
+        value: https://pool-api.richesdigitalventures.com
+    domains:
+      - pool.richesdigitalventures.com
+    routes:
+      # Client-side routing: every path serves the app shell.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      # The offline database (expo-sqlite on web) needs cross-origin isolation.
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: same-origin
+      - path: /*
+        name: Cross-Origin-Embedder-Policy
+        value: require-corp
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      # Hashed bundles never change; the app shell always revalidates.
+      - path: /_expo/static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache

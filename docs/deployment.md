@@ -25,6 +25,45 @@ The API is stateless; run two or more instances behind a load balancer. The piec
 | Object storage | **Supabase Storage** (`STORAGE_DRIVER=supabase`), a private bucket. S3 / R2 / MinIO remain available with `STORAGE_DRIVER=s3`. |
 | Email / push | Resend (`RESEND_API_KEY`), Expo push (`EXPO_ACCESS_TOKEN`) |
 
+## Web app on Render (pool.richesdigitalventures.com)
+
+The web/admin app is a static Expo web export, defined in `render.yaml`.
+
+| Host | What | Where |
+|---|---|---|
+| `pool.richesdigitalventures.com` | Web app (static SPA) | Render static site `pool-pm-web` |
+| `pool-api.richesdigitalventures.com` | API (planned; needs the Supabase project) | Render web service from the `api` Docker target |
+
+### 1. Render
+
+1. Create the **Pool PM** workspace (workspace switcher → New workspace).
+2. In it: **New → Blueprint →** this repository. Render reads `render.yaml` and creates `pool-pm-web` with:
+   - the build command (`npm run web:build`)
+   - SPA rewrites
+   - the cross-origin isolation headers the offline database needs
+   - the custom domain `pool.richesdigitalventures.com`
+3. Open the site's **Settings → Custom Domains**. Render shows the domain as *unverified* with its target `pool-pm-web.onrender.com`.
+
+### 2. Cloudflare (zone `richesdigitalventures.com`)
+
+1. **DNS → Records → Add record**:
+
+   | Type | Name | Target | Proxy status |
+   |---|---|---|---|
+   | CNAME | `pool` | `pool-pm-web.onrender.com` | Proxied |
+
+2. **SSL/TLS → Overview**: the encryption mode must be **Full (strict)**. Render serves a valid certificate, and anything weaker can cause redirect loops.
+3. Back in Render, click **Verify** next to the domain. The certificate is issued within minutes.
+
+Cloudflare's Universal SSL covers first-level subdomains, so `pool.` and `pool-api.` need no extra certificate.
+
+### 3. When the API goes live
+
+- Deploy the API with `CORS_ORIGINS=https://pool.richesdigitalventures.com` and `PUBLIC_API_URL=https://pool-api.richesdigitalventures.com`.
+- Add a second **Proxied** CNAME, `pool-api` → `<api-service>.onrender.com`. Cloudflare proxies WebSockets, which realtime uses, by default.
+- `EXPO_PUBLIC_API_URL` in `render.yaml` already points there. Change it and redeploy if you choose a different host.
+- Production mobile builds use the same URL. Set `EXPO_PUBLIC_API_URL` in the EAS **production** environment.
+
 ## Supabase
 
 Pool PM uses Supabase for **Postgres** and **Storage**.

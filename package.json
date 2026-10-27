@@ -25,7 +25,8 @@
     "format": "prettier --write .",
     "e2e": "npm run build:web -w @pool/e2e && npm run test:e2e -w @pool/e2e",
     "version:bump": "tsx scripts/bump-version.ts",
-    "supabase:setup": "tsx services/api/scripts/supabase-setup.ts"
+    "supabase:setup": "tsx services/api/scripts/supabase-setup.ts",
+    "web:build": "npm run export:web -w @pool/mobile -- --output-dir dist --clear"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

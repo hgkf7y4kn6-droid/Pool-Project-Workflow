@@ -4,6 +4,8 @@ Authorization is enforced on the server. The app uses the same rules only to hid
 
 ## Authentication
 
+Accounts and sign-in are Pool PM's own; there is no third-party identity provider such as Clerk or Supabase Auth. Offline sign-in, the role and permission matrix, per-company tenants, client redaction and the sync protocol all depend on identities issued by our API.
+
 | Mechanism | Implementation |
 |---|---|
 | Passwords | scrypt (N=2^15, r=8, p=1, 64-byte key, random salt), encoded as `scrypt$N$r$p$salt$hash` so parameters can be raised. `needsRehash` upgrades old hashes on login. Comparison uses `timingSafeEqual`. |
