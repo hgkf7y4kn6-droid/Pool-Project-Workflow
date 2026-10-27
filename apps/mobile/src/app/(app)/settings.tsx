@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Switch, View } from "react-native";
 import { Button, Card, ConfirmDialog, KeyValue, ListItem, Screen, SectionHeader, Text } from "@/components/ui";
 import { useProjects } from "@/features/data";
+import { APP_VERSION } from "@pool/config";
 import { config } from "@/lib/config";
 import { getJSON, KV_KEYS, setJSON } from "@/lib/kv";
 import { useSession } from "@/providers/session";
@@ -85,6 +86,7 @@ export default function Settings() {
 
       <SectionHeader title="About" />
       <Card>
+        <KeyValue label="Version" value={APP_VERSION} />
         <KeyValue label="Server" value={config.apiUrl} />
         <KeyValue label="Environment" value={config.appEnv} />
       </Card>

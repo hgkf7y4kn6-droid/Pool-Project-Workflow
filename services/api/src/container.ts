@@ -11,6 +11,7 @@ import { OAuthVerifier } from "./adapters/oauth";
 import { ExpoPushProvider, LogPushProvider } from "./adapters/push";
 import { InMemoryEventBus, RedisEventBus } from "./adapters/realtime";
 import { LocalStorage } from "./adapters/storage/local";
+import { SupabaseStorage } from "./adapters/storage/supabase";
 import { S3Storage } from "./adapters/storage/s3";
 import { NoWeatherProvider, OpenMeteoProvider } from "./adapters/weather/open-meteo";
 import { jobHandlers } from "./jobs";
@@ -31,10 +32,12 @@ export function createContainer(env: Env, overrides: Partial<Deps> = {}): Contai
       level: env.LOG_LEVEL,
       redact: ["req.headers.authorization", "*.password", "*.refreshToken", "*.accessToken", "*.token"],
     });
-  const { db, pool } = createDb({ connectionString: env.DATABASE_URL, max: env.DATABASE_POOL_MAX, ssl: env.DATABASE_SSL });
+  const { db, pool } = createDb({ connectionString: env.DATABASE_URL, max: env.DATABASE_POOL_MAX, ssl: env.DATABASE_SSL, ca: env.DATABASE_SSL_CA });
 
   const storage =
-    env.STORAGE_DRIVER === "s3"
+    env.STORAGE_DRIVER === "supabase"
+      ? new SupabaseStorage({ url: env.SUPABASE_URL!, secretKey: env.SUPABASE_SECRET_KEY!, bucket: env.SUPABASE_STORAGE_BUCKET })
+      : env.STORAGE_DRIVER === "s3"
       ? new S3Storage({
           bucket: env.S3_BUCKET!,
           region: env.S3_REGION,

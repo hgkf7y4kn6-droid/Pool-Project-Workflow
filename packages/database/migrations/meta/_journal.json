@@ -15,6 +15,13 @@
       "when": 1791322532395,
       "tag": "0001_sync_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793122446713,
+      "tag": "0002_supabase_lockdown",
+      "breakpoints": true
     }
   ]
 }

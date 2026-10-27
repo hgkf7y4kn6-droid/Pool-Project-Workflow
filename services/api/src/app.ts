@@ -13,7 +13,7 @@ import { generalRoutes } from "./routes/general";
 import { projectRoutes } from "./routes/projects";
 import { realtimeRoutes } from "./routes/realtime";
 import { localStorageRoutes } from "./routes/storage";
-import { LIMITS } from "@pool/config";
+import { APP_VERSION, LIMITS } from "@pool/config";
 
 export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   const app = Fastify({
@@ -65,7 +65,7 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
     reply.code(404).send({ error: { code: "not_found", message: `Route ${request.method} ${request.url} not found`, requestId: request.id } }),
   );
 
-  app.get("/health", { config: { rateLimit: false } }, async () => ok({ status: "ok", time: new Date().toISOString() }));
+  app.get("/health", { config: { rateLimit: false } }, async () => ok({ status: "ok", version: APP_VERSION, time: new Date().toISOString() }));
   app.get("/health/ready", { config: { rateLimit: false } }, async (_req, reply) => {
     try {
       await deps.db.execute(sql`select 1`);

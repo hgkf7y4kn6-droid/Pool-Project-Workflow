@@ -112,9 +112,9 @@ All server configuration is environment variables, validated at startup (`servic
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL`, `REDIS_URL` | PostgreSQL. Redis enables BullMQ jobs and multi-instance realtime. |
+| `DATABASE_URL`, `DATABASE_SSL(_CA)`, `REDIS_URL` | PostgreSQL. Redis enables BullMQ jobs and multi-instance realtime. |
 | `JWT_SECRET`, `DATA_ENCRYPTION_KEY` | Token signing; AES-256-GCM key for secrets at rest such as MFA seeds. Generate with `openssl rand`. |
-| `STORAGE_DRIVER`, `S3_*` | `local` for development, or `s3` for AWS S3, Cloudflare R2, MinIO and other S3-compatible stores |
+| `STORAGE_DRIVER`, `SUPABASE_*`, `S3_*` | `local` for development, `supabase` in production (Supabase Storage), or `s3` for other S3-compatible stores |
 | `WEATHER_PROVIDER` | `open-meteo` (no key needed) or `none` |
 | `PUSH_PROVIDER`, `EXPO_ACCESS_TOKEN` | `expo` push, or `log` for development |
 | `MAIL_PROVIDER`, `RESEND_API_KEY` | `resend`, or `console` for development |
@@ -127,7 +127,7 @@ All server configuration is environment variables, validated at startup (`servic
 
 The short version is below. [docs/deployment.md](docs/deployment.md) has the full guide.
 
-1. Provision managed PostgreSQL 16, Redis 7 and an S3-compatible bucket. Set the secrets for each environment.
+1. Create a **Supabase** project per environment (Postgres + Storage) and run `npm run supabase:setup`. See [deployment.md#supabase](docs/deployment.md#supabase). Add Redis 7 for jobs.
 2. Build the images: `docker build --target api` and `--target worker` (CI does this and pushes to GHCR).
 3. Run migrations once per release: `docker run --rm -e DATABASE_URL=… pool-api node dist/migrate.js`.
 4. Roll out the API (stateless, horizontally scalable, `GET /health/ready` for probes) and one or more workers.

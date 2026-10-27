@@ -30,3 +30,4 @@ export const PHOTO = {
   /** Server-generated thumbnail bounding box. */
   thumbnailEdgePx: 400,
 } as const;
+export * from "./version";

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pool PM",
     "slug": "pool-project-workflow",
-    "version": "0.2.0",
+    "version": "0.0.3",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "poolpm",
@@ -41,7 +41,7 @@
       "backgroundColor": "#f5f2ec",
       "name": "Pool PM",
       "shortName": "Pool PM",
-      "description": "Run every pool build from lead to warranty \u2014 schedule, crews, photos, change orders and client approvals, online or off."
+      "description": "Run every pool build from lead to warranty — schedule, crews, photos, change orders and client approvals, online or off."
     },
     "plugins": [
       "expo-router",
@@ -106,7 +106,7 @@
       }
     },
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "fingerprint"
     },
     "updates": {
       "url": "https://u.expo.dev/bf141886-8bab-41b9-ab69-c1baf17d700f"

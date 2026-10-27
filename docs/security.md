@@ -136,7 +136,8 @@ The provider key stays on the server, and `AI_PROVIDER=none` disables the featur
 ## Production checklist
 
 - [ ] Generate unique `JWT_SECRET` (≥ 48 random bytes) and `DATA_ENCRYPTION_KEY` (32 bytes) per environment, and keep them in a secret manager.
-- [ ] Use `STORAGE_DRIVER=s3` with a private bucket and a least-privilege IAM key (the API refuses `local` in staging and production).
+- [ ] Use `STORAGE_DRIVER=supabase` (or `s3`) with a private bucket (the API refuses `local` in staging and production). Keep `SUPABASE_SECRET_KEY` server-side only.
+- [ ] Supabase: `DATABASE_SSL=verify-full` with the project CA, migration `0002_supabase_lockdown` applied (no tables reachable through the public Data API), and ideally the Data API turned off.
 - [ ] Use TLS everywhere, and restrict `CORS_ORIGINS` to the admin web origin(s).
 - [ ] Have admins and project managers enable MFA (Settings → Security), and review the **Roles & permissions** overrides.
 - [ ] Database: TLS, a non-superuser app role, backups and point-in-time recovery.

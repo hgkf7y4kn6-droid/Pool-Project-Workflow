@@ -68,7 +68,7 @@ npm workspaces and Turborepo. Internal packages ship **TypeScript source** (`"ma
 
 | Port | Implementations | Selected by |
 |---|---|---|
-| Storage | `LocalStorage` (HMAC-signed URLs served by the API), `S3Storage` (AWS, R2, MinIO) | `STORAGE_DRIVER` |
+| Storage | `SupabaseStorage` (production), `LocalStorage` (HMAC-signed URLs served by the API, development), `S3Storage` (AWS, R2, MinIO) | `STORAGE_DRIVER` |
 | Weather | Open-Meteo, none | `WEATHER_PROVIDER` |
 | Push | Expo push service, log | `PUSH_PROVIDER` |
 | Mail | Resend, console | `MAIL_PROVIDER` |

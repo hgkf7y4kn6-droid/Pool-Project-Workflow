@@ -1,6 +1,6 @@
 {
   "name": "@pool/api",
-  "version": "0.1.0",
+  "version": "0.0.3",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -28,6 +28,7 @@
     "@pool/sync": "*",
     "@pool/types": "*",
     "@pool/validation": "*",
+    "@supabase/storage-js": "^2.118.0",
     "bullmq": "^5.34.0",
     "drizzle-orm": "^0.45.0",
     "exceljs": "^4.4.0",

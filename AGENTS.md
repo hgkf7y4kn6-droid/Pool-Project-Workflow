@@ -16,8 +16,10 @@ Monorepo (npm workspaces + Turborepo). Read `README.md` and `docs/architecture.m
   - Field writes in the app go through `apps/mobile/src/lib/mutations.ts`: a local upsert plus an enqueued sync op.
   - The matching server handler lives in `services/api/src/services/sync.ts` and must call the same service function as REST.
   - Never drop queued operations silently.
-- **Database**:
+- **Versioning**: every push that changes the app, API or worker first runs `npm run version:bump`. That bumps the last digit, rolling over 0.0.9 → 0.1.0 → … → 0.9.9 → 1.0.0. Commit all the changed `package.json` files, `apps/mobile/app.json`, `packages/config/src/version.ts` and `package-lock.json`. Docs-only changes don't bump.
+- **Database** (Supabase Postgres in staging and production):
   - Edit `packages/database/src/schema.ts`, then `npm run db:generate`, and commit the migration.
+  - Every new table must `ENABLE ROW LEVEL SECURITY` in its migration; a database test fails otherwise. Never add RLS policies or grants for `anon`/`authenticated`, because the app doesn't use Supabase's Data API.
   - Synced tables need `version`, `change_seq` and `deleted_at`, plus the trigger from `0001_sync_triggers.sql`.
 - **Money** is integer cents. **Dates** are `YYYY-MM-DD`. **IDs** are UUIDs, which clients may generate.
 - **UI**:

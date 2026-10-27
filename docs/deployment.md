@@ -20,10 +20,57 @@ The API is stateless; run two or more instances behind a load balancer. The piec
 |---|---|
 | API | Container platform (ECS/Fargate, Cloud Run, Fly, Render, Kubernetes). 0.5 vCPU / 512 MB to start. Health: `GET /health` (liveness), `GET /health/ready` (readiness, checks the DB). WebSockets must be allowed through the load balancer. |
 | Worker | Same image family (`--target worker`), 1+ instances. BullMQ job schedulers are idempotent, so extra workers are safe. |
-| PostgreSQL 16 | Managed (RDS, Cloud SQL, Neon, Supabase…). TLS, automated backups, PITR, a non-superuser app role. Use a pooler (PgBouncer in transaction mode) when running many API instances. |
+| PostgreSQL | **Supabase** (one project per environment). See [Supabase](#supabase) below. Any Postgres 16+ works too. |
 | Redis 7 | Managed. Used by BullMQ and the realtime pub/sub bus. Without Redis, jobs run inline and realtime is per instance, which is fine for a single instance only. |
-| Object storage | S3 / R2 / GCS (S3 API) / MinIO. A private bucket with CORS that allows `PUT`/`GET` from the app's web origin. |
+| Object storage | **Supabase Storage** (`STORAGE_DRIVER=supabase`), a private bucket. S3 / R2 / MinIO remain available with `STORAGE_DRIVER=s3`. |
 | Email / push | Resend (`RESEND_API_KEY`), Expo push (`EXPO_ACCESS_TOKEN`) |
+
+## Supabase
+
+Pool PM uses Supabase for **Postgres** and **Storage**.
+- Authentication, permissions, realtime and sync stay in our API. The offline login, the role matrix, client redaction and the sync protocol all depend on them.
+- The app never talks to Supabase directly and holds no Supabase keys. Devices only receive short-lived signed URLs for files.
+
+### Create one project per environment
+
+1. Create a project per environment, for example `pool-pm-staging` and `pool-pm-prod`, in a region close to your API hosting. Use a strong database password.
+2. Collect these values from the project:
+
+| Value | Where in the dashboard | Variable |
+|---|---|---|
+| Session pooler connection string, port 5432 (IPv4) | **Connect** | `DATABASE_URL` and `MIGRATION_DATABASE_URL` |
+| CA certificate | **Database → Settings → SSL Configuration** | `DATABASE_SSL_CA` (PEM or base64), with `DATABASE_SSL=verify-full` |
+| Project URL and a **secret** API key (`sb_secret_…`) | **Settings → API Keys** | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` |
+
+3. Run the one-time setup from a trusted machine. It applies migrations and creates the private bucket:
+
+   ```bash
+   MIGRATION_DATABASE_URL='postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres' \
+   DATABASE_SSL=verify-full DATABASE_SSL_CA="$(base64 -w0 prod-ca-2021.crt)" \
+   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SECRET_KEY=sb_secret_... \
+   npm run supabase:setup
+   ```
+
+4. Configure the API and worker:
+
+   ```bash
+   DATABASE_URL=<session pooler string>
+   DATABASE_SSL=verify-full
+   DATABASE_SSL_CA=<base64 CA>
+   DATABASE_POOL_MAX=10
+   STORAGE_DRIVER=supabase
+   SUPABASE_URL=https://<ref>.supabase.co
+   SUPABASE_SECRET_KEY=sb_secret_...
+   ```
+
+### Why these settings
+
+- **Session pooler, not transaction pooler.** The API and worker are long-lived servers. Session mode behaves like a direct connection and supports everything we use. The sync triggers' advisory locks are transaction-scoped, so transaction mode (port 6543) also works, but it gives no benefit for a server and adds caveats. Keep `DATABASE_POOL_MAX × instances` below the pool size of your Supabase plan.
+- **`verify-full` TLS.** The API refuses to start in staging or production with TLS disabled to a remote database. Don't put `sslmode` in the URL: TLS is configured explicitly from `DATABASE_SSL`.
+- **The public Data API can't see our tables.** Migration `0002_supabase_lockdown` enables row-level security on every table and revokes all access from Supabase's `anon` and `authenticated` roles, including for future tables. A database test fails if any table lacks RLS. You can also turn the Data API off entirely under **Integrations → Data API**, since Pool PM doesn't use it. Supabase's Security Advisor should then show no "RLS disabled" findings.
+- **Storage.** The bucket is private. Devices upload with single-use signed upload URLs, which Supabase fixes at 2 hours, and download with signed URLs (`SIGNED_URL_TTL_SECONDS`). Files are keyed `org/<id>/…`.
+- **Secret key.** It is for the API and worker only. Treat it like the database password, and rotate it in **Settings → API Keys** if it leaks.
+- **Backups.** Use Supabase daily backups; enable PITR on production. `npm run db:reset` refuses to run against a remote database.
 
 ## Release pipeline
 
@@ -34,7 +81,7 @@ The API is stateless; run two or more instances behind a load balancer. The piec
 3. **rollout**: calls your platform's deploy hook (`DEPLOY_HOOK_URL`) with the two image tags, then polls `API_URL/health/ready`.
 4. **mobile**: `eas update --channel <env>` for JS-only changes (default), or `eas build` when native code or dependencies changed (dispatch input `mobile: build`).
 
-Set up a GitHub Environment per target (`development`, `staging`, `production`) with secrets `DATABASE_URL`, `DEPLOY_HOOK_URL`, `EXPO_TOKEN` and the variable `API_URL`. Add required reviewers on `production`.
+Set up a GitHub Environment per target (`development`, `staging`, `production`) with secrets `MIGRATION_DATABASE_URL`, `DATABASE_SSL_CA`, `DEPLOY_HOOK_URL`, `EXPO_TOKEN` and the variable `API_URL`. Add required reviewers on `production`.
 
 ### Migrations
 

@@ -21,7 +21,17 @@ const envSchema = z
     CORS_ORIGINS: z.string().default("http://localhost:8081,http://localhost:19006"),
 
     DATABASE_URL: z.string().min(1),
-    DATABASE_SSL: bool.default(false),
+    /** disable (local) | require | verify-full (Supabase: also set DATABASE_SSL_CA). "true"/"false" still accepted. */
+    DATABASE_SSL: z
+      .string()
+      .default("disable")
+      .transform((v) => (v === "true" ? "verify-full" : v === "false" ? "disable" : v))
+      .pipe(z.enum(["disable", "require", "verify-full"])),
+    /** PEM (or base64 of the PEM) CA certificate for DATABASE_SSL=verify-full. */
+    DATABASE_SSL_CA: z
+      .string()
+      .optional()
+      .transform((v) => (v ? (v.includes("BEGIN CERTIFICATE") ? v : Buffer.from(v, "base64").toString("utf8")) : undefined)),
     DATABASE_POOL_MAX: z.coerce.number().int().default(10),
     REDIS_URL: z.string().optional(),
 
@@ -34,7 +44,11 @@ const envSchema = z
       message: "DATA_ENCRYPTION_KEY must be 32 bytes, base64 encoded",
     }),
 
-    STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+    STORAGE_DRIVER: z.enum(["local", "s3", "supabase"]).default("local"),
+    /** Supabase project URL and server-only secret key (sb_secret_… or legacy service_role). */
+    SUPABASE_URL: z.string().url().optional(),
+    SUPABASE_SECRET_KEY: z.string().optional(),
+    SUPABASE_STORAGE_BUCKET: z.string().default("pool-pm-files"),
     STORAGE_LOCAL_DIR: z.string().default(".storage"),
     S3_BUCKET: z.string().optional(),
     S3_REGION: z.string().default("auto"),
@@ -69,6 +83,14 @@ const envSchema = z
     SENTRY_DSN: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.STORAGE_DRIVER === "supabase") {
+      if (!env.SUPABASE_URL) ctx.addIssue({ code: "custom", path: ["SUPABASE_URL"], message: "SUPABASE_URL is required for the supabase storage driver" });
+      if (!env.SUPABASE_SECRET_KEY) ctx.addIssue({ code: "custom", path: ["SUPABASE_SECRET_KEY"], message: "SUPABASE_SECRET_KEY is required for the supabase storage driver" });
+    }
+    const remoteDb = !/@(localhost|127\.0\.0\.1|postgres|db)(:|\/)/.test(env.DATABASE_URL);
+    if (isDeployedEnv(env.APP_ENV) && remoteDb && env.DATABASE_SSL === "disable") {
+      ctx.addIssue({ code: "custom", path: ["DATABASE_SSL"], message: "Use DATABASE_SSL=verify-full (or require) for a remote database" });
+    }
     if (env.STORAGE_DRIVER === "s3" && !env.S3_BUCKET) {
       ctx.addIssue({ code: "custom", path: ["S3_BUCKET"], message: "S3_BUCKET is required for the s3 driver" });
     }
@@ -82,7 +104,7 @@ const envSchema = z
       ctx.addIssue({ code: "custom", path: ["ANTHROPIC_API_KEY"], message: "ANTHROPIC_API_KEY is required for anthropic" });
     }
     if (isDeployedEnv(env.APP_ENV) && env.STORAGE_DRIVER === "local") {
-      ctx.addIssue({ code: "custom", path: ["STORAGE_DRIVER"], message: "Use object storage (s3) outside development" });
+      ctx.addIssue({ code: "custom", path: ["STORAGE_DRIVER"], message: "Use object storage (supabase or s3) outside development" });
     }
   });
 

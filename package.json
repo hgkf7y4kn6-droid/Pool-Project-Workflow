@@ -1,7 +1,7 @@
 {
   "name": "pool-project-workflow",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.3",
   "description": "Cross-platform pool construction project management platform",
   "workspaces": [
     "apps/*",
@@ -23,7 +23,9 @@
     "worker:dev": "npm run dev -w @pool/worker",
     "mobile": "npm run start -w @pool/mobile",
     "format": "prettier --write .",
-    "e2e": "npm run build:web -w @pool/e2e && npm run test:e2e -w @pool/e2e"
+    "e2e": "npm run build:web -w @pool/e2e && npm run test:e2e -w @pool/e2e",
+    "version:bump": "tsx scripts/bump-version.ts",
+    "supabase:setup": "tsx services/api/scripts/supabase-setup.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

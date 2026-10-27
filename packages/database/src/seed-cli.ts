@@ -1,4 +1,4 @@
-import { createDb } from "./index";
+import { createDb, tlsFromEnv } from "./index";
 import { seed } from "./seed";
 
 const url = process.env.DATABASE_URL;
@@ -10,7 +10,7 @@ if ((process.env.APP_ENV ?? process.env.NODE_ENV) === "production" && !process.a
   console.error("Refusing to seed demo data into production (pass --allow-production to override).");
   process.exit(1);
 }
-const { db, pool } = createDb({ connectionString: url, max: 1 });
+const { db, pool } = createDb({ connectionString: url, max: 1, ...tlsFromEnv() });
 try {
   await seed(db, { force: process.argv.includes("--force"), log: console.log });
 } finally {
