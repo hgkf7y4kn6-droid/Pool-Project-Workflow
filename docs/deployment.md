@@ -32,7 +32,7 @@ The web/admin app is a static Expo web export, defined in `render.yaml`.
 | Host | What | Where |
 |---|---|---|
 | `pool.richesdigitalventures.com` | Web app (static SPA) | Render static site `pool-pm-web` |
-| `pool-api.richesdigitalventures.com` | API | Render web service `pool-pm-api` (Docker, last stage of the `Dockerfile`). It runs `node dist/migrate.js` before starting, so schema changes ship with each deploy. |
+| `pool-api.richesdigitalventures.com` | API | Render web service `pool-pm-api` (Docker, last stage of the `Dockerfile`). The image starts with `dist/start.js`, which applies migrations and then starts the server, so schema changes ship with each deploy. Leave Render's *Docker Command* empty. |
 
 ### Staging as provisioned
 

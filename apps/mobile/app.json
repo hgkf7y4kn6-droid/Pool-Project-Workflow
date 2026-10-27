@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pool PM",
     "slug": "pool-project-workflow",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "poolpm",

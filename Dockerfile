@@ -2,8 +2,8 @@
 # One image definition for the backend; pick the process with --target:
 #   docker build --target api    -t pool-api .
 #   docker build --target worker -t pool-worker .
-# Migrations run as a one-off container before rollout:
-#   docker run --rm -e DATABASE_URL=... pool-api node dist/migrate.js
+# The api image migrates on start (dist/start.js). To migrate as a separate
+# one-off step instead, run `node dist/migrate.js` and set SKIP_MIGRATIONS=1.
 
 ARG NODE_VERSION=22
 
@@ -59,4 +59,5 @@ WORKDIR /app/services/api
 COPY --from=build --chown=node:node /app/services/api/dist ./dist
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||4000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "--enable-source-maps", "dist/server.js"]
+# Applies migrations, then starts the server (dist/server.js skips migrations).
+CMD ["node", "--enable-source-maps", "dist/start.js"]
