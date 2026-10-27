@@ -32,7 +32,25 @@ The web/admin app is a static Expo web export, defined in `render.yaml`.
 | Host | What | Where |
 |---|---|---|
 | `pool.richesdigitalventures.com` | Web app (static SPA) | Render static site `pool-pm-web` |
-| `pool-api.richesdigitalventures.com` | API (planned; needs the Supabase project) | Render web service from the `api` Docker target |
+| `pool-api.richesdigitalventures.com` | API | Render web service `pool-pm-api` (Docker, last stage of the `Dockerfile`). It runs `node dist/migrate.js` before starting, so schema changes ship with each deploy. |
+
+### Staging as provisioned
+
+- **Render workspace "Pool PM":**
+  - `pool-pm-web`: static site.
+  - `pool-pm-api`: web service on the **free** plan. It sleeps after 15 minutes idle, so the first request takes about a minute. Background jobs run inline because there's no Redis, so the scheduled weather and overdue scans need a worker plus Key Value before they run on a timer.
+- **Supabase project `pool-pm-staging`** (ref `fexfebhhvutnotftbegv`, us-west-1, Postgres 17), with private bucket `pool-pm-files`. On the free plan, uploads are capped at 50 MB per file.
+- **Secrets on `pool-pm-api`.** These are set in the Render dashboard, never in the repo:
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Supabase **Connect → Session pooler** URI, with the database password filled in |
+| `DATABASE_SSL_CA` | Supabase **Database → Settings → SSL Configuration** certificate (PEM, or base64 of it) |
+| `SUPABASE_SECRET_KEY` | Supabase **Settings → API Keys → Secret keys** (`sb_secret_…`) |
+| `JWT_SECRET` | Render **Generate** |
+| `DATA_ENCRYPTION_KEY` | Render **Generate**, which produces a 32-byte base64 value |
+
+The empty staging database has no demo data. Create the first company with **Set up your company** on the sign-in screen.
 
 ### 1. Render
 
