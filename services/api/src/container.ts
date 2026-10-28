@@ -1,4 +1,5 @@
 import { createDb } from "@pool/database";
+import { requestSerializer } from "./lib/log";
 import pino from "pino";
 import type { Env } from "./config/env";
 import type { Deps } from "./context";
@@ -34,6 +35,8 @@ export function createContainer(env: Env, overrides: Partial<Deps> = {}): Contai
     pino({
       level: env.LOG_LEVEL,
       redact: ["req.headers.authorization", "*.password", "*.refreshToken", "*.accessToken", "*.token"],
+      // The realtime WebSocket takes its access token in the query string.
+      serializers: { req: requestSerializer },
     });
   const { db, pool } = createDb({ connectionString: env.DATABASE_URL, max: env.DATABASE_POOL_MAX, ssl: env.DATABASE_SSL, ca: env.DATABASE_SSL_CA });
 

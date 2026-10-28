@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import { LIMITS } from "@pool/config";
 import { documentVersions, documents, users } from "@pool/database";
 import type { DocumentCreateInput } from "@pool/validation";
 import { documentListQuery, documentUpdateSchema, documentVersionSchema, z } from "@pool/validation";
@@ -12,7 +13,9 @@ import { documentOut } from "./mappers";
 
 type DocRow = typeof documents.$inferSelect;
 
-const ALLOWED_MIME = /^(application\/pdf|image\/(jpeg|png|webp|heic)|application\/(vnd\.openxmlformats-officedocument\.[\w.]+|msword|vnd\.ms-excel)|text\/(plain|csv)|model\/(gltf-binary|gltf\+json|vnd\.usdz\+zip)|application\/(dxf|acad|x-dwg|octet-stream))$/;
+const ALLOWED_MIME = /^(application\/pdf|image\/(jpeg|png|webp|heic)|application\/(vnd\.openxmlformats-officedocument\.[\w.]+|msword|vnd\.ms-excel)|text\/(plain|csv)|model\/(gltf-binary|gltf\+json|vnd\.usdz\+zip)|application\/(dxf|acad|x-dwg))$/;
+/** Generic binary is accepted only for CAD/3D formats that browsers and phones label inconsistently. */
+const OCTET_STREAM_EXTENSIONS = /\.(dwg|dxf|skp|ifc|rvt|3dm|obj|stl|glb|usdz)$/i;
 
 async function loadDocument(ctx: Ctx, id: string): Promise<DocRow> {
   const [row] = await ctx.deps.db.select().from(documents).where(and(eq(documents.id, id), isNull(documents.deletedAt), eq(documents.organizationId, ctx.auth.organizationId)));
@@ -84,7 +87,8 @@ export async function getDocument(ctx: Ctx, id: string) {
 }
 
 async function newVersion(ctx: Ctx, doc: DocRow, file: z.infer<typeof documentVersionSchema>) {
-  if (!ALLOWED_MIME.test(file.mimeType)) throw badRequest(`Unsupported file type ${file.mimeType}`);
+  const generic = file.mimeType === "application/octet-stream" && OCTET_STREAM_EXTENSIONS.test(file.fileName);
+  if (!ALLOWED_MIME.test(file.mimeType) && !generic) throw badRequest(`Unsupported file type ${file.mimeType}`);
   const [{ next } = { next: 1 }] = await ctx.deps.db
     .select({ next: sql<number>`coalesce(max(${documentVersions.versionNumber}), 0)::int + 1` })
     .from(documentVersions)
@@ -138,6 +142,11 @@ export async function completeDocumentUpload(ctx: Ctx, documentId: string, versi
   if (!version) throw notFound("Version");
   const head = await ctx.deps.storage.head(version.storageKey);
   if (!head) throw badRequest("Upload not found in storage");
+  if (head.size > LIMITS.documentBytes) {
+    // The declared size was honest on paper only; do not keep an oversized object.
+    await ctx.deps.storage.deleteObject(version.storageKey);
+    throw badRequest("Uploaded file is larger than the allowed size");
+  }
   await ctx.deps.db.transaction(async (tx) => {
     await tx.update(documentVersions).set({ uploadStatus: "uploaded", byteSize: head.size }).where(eq(documentVersions.id, versionId));
     await tx.update(documents).set({ currentVersionId: versionId, updatedBy: ctx.auth.userId }).where(eq(documents.id, documentId));

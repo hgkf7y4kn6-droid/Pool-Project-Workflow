@@ -50,6 +50,12 @@ jobs:
             git status --porcelain packages/database/migrations
             exit 1
           fi
+      - name: Dependency audit
+        # Blocks on critical. High findings that remain come from Expo build tooling reached through
+        # drizzle-orm's optional expo-sqlite peer; they are listed here and tracked in the audit doc.
+        run: |
+          npm audit --omit=dev --audit-level=high || echo "::warning::npm audit reports high findings; review the log"
+          npm audit --omit=dev --audit-level=critical
       - name: Backend bundles build
         run: npm run build -w @pool/api && npm run build -w @pool/worker
 

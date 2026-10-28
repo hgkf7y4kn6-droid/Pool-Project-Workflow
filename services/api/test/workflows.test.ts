@@ -282,6 +282,9 @@ describe("photos and documents", () => {
     expect(search.body.data.some((d: { id: string }) => d.id === docId)).toBe(true);
     // Internal documents are hidden from clients.
     expect((await pm.post("/documents", { title: "x", category: "other", file: { fileName: "x.exe", mimeType: "application/x-msdownload", byteSize: 1 } })).status).toBe(400);
+    // Generic binary no longer defeats the allowlist; it is accepted only for CAD/3D extensions.
+    expect((await pm.post("/documents", { title: "x", category: "other", file: { fileName: "x.exe", mimeType: "application/octet-stream", byteSize: 1 } })).status).toBe(400);
+    expect((await pm.post("/documents", { projectId, title: "Site CAD", category: "engineering", file: { fileName: "site.dwg", mimeType: "application/octet-stream", byteSize: 1 } })).status).toBe(201);
   });
 });
 

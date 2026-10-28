@@ -415,3 +415,22 @@ The Go/No-Go in section 7 stands: **Conditional Go (internal pilot only)**. The 
 | F-17, F-18, F-28, F-29 | P3 | Accessibility / Config | S | As listed |
 
 No code, configuration or data changes were made for section 9. All measurements used scratch databases that exist only in this session's container.
+
+## 10. Remediation log (v0.0.9)
+
+Changes made after the audit, each with a test unless noted. Verified with typecheck, lint, 71 unit and integration tests against Postgres, and 12 Playwright specs.
+
+| ID | Result |
+|---|---|
+| F-06 | **Fixed.** Refresh rotation is a compare-and-set. The previous token is accepted once more for 30 s (lost-response retry) and rotates again; replay after the window revokes the session. Parallel refreshes of one token cannot both win. Trade-off: a stolen token replayed within 30 s also gets a session. |
+| F-07 (part) | **Fixed:** `changePassword` revokes every other session. Open: email verification, TOTP replay protection, email enumeration, global email uniqueness. |
+| F-05 | **Fixed:** the pino `req` serializer redacts `token`, `sig` and similar query values. A short-lived WebSocket ticket is still the better long-term design. |
+| F-09 | **Fixed:** `application/octet-stream` is accepted only for CAD/3D extensions. Real stored size is checked against `LIMITS` at completion and an oversized object is deleted (documents and photos; the size path is not covered by a test because it needs a 500 MB object). Malware scanning is still open. |
+| F-10 | **Fixed:** `dump.rdb` untracked and `*.rdb` added to `.gitignore` (the entry the audit assumed was missing). |
+| F-12 | **Partly fixed:** `sharp` 0.35.5 and `zod` 4.6.7. CI now runs `npm audit` and blocks on critical. 4 high findings remain (`image-size`, `node-forge`, `postcss`, `undici`); they come from Expo build tooling through `drizzle-orm`'s optional `expo-sqlite` peer. They need an Expo SDK upgrade, not a patch. |
+| F-21 | **Partly fixed:** the dashboard returns at most 50 active projects; counts still cover all. The p95 target was not re-measured. |
+| F-23 | **Fixed in the workflow, unverified on GitHub:** `deploy.yml` runs on `workflow_run` of a successful CI on `main` and deploys the commit CI tested. Manual dispatch is unchanged. |
+| F-24 | **Fixed:** a missing `DEPLOY_HOOK_URL` or `vars.API_URL` now fails the job. This can turn staging deploys red until those are set. |
+| F-29 | **Fixed:** compose ports bind to `127.0.0.1`. |
+
+**Still open:** F-02 unique index (needs approval and a duplicate check), F-04 and F-08 (need topology and Render access), F-30 restore epoch, F-25 to F-28, F-31, F-32, and the accessibility findings F-15 to F-20.

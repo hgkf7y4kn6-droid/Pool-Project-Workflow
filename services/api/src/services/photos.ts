@@ -9,7 +9,7 @@ import { extensionFor, storageKeys } from "../adapters/storage/types";
 import { loadProject, requirePermission } from "./access";
 import { recordActivity } from "./activity";
 import { photoOut } from "./mappers";
-import { PHOTO } from "@pool/config";
+import { LIMITS, PHOTO } from "@pool/config";
 
 type PhotoRow = typeof photos.$inferSelect;
 
@@ -127,6 +127,10 @@ export async function completePhotoUpload(ctx: Ctx, photoId: string) {
   const row = await loadPhoto(ctx, photoId);
   const head = await ctx.deps.storage.head(row.storageKey!);
   if (!head) throw badRequest("Upload not found in storage. Upload the file, then retry.");
+  if (head.size > LIMITS.photoBytes) {
+    await ctx.deps.storage.deleteObject(row.storageKey!);
+    throw badRequest("Uploaded photo is larger than the allowed size");
+  }
   const [updated] = await ctx.deps.db
     .update(photos)
     .set({ uploadStatus: "uploaded", byteSize: head.size, updatedBy: ctx.auth.userId })

@@ -39,3 +39,4 @@ apps/mobile/dist
 __pycache__/
 .pytest_cache/
 .venv/
+*.rdb

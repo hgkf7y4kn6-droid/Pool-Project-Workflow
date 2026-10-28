@@ -16,6 +16,8 @@ import { computeProjectBudget } from "./budget";
 import { pendingChangeOrders } from "./change-orders";
 import { organizationTimezone } from "./schedule";
 
+const ACTIVE_PROJECT_LIST_LIMIT = 50;
+
 /**
  * Company dashboard: what needs attention today across every project the
  * user can see. Each section is a bounded query (no full-table loads).
@@ -173,7 +175,8 @@ export async function companyDashboard(ctx: Ctx) {
       behindSchedule,
       weatherAlerts: weather.length,
     },
-    activeProjects,
+    // Counts above cover every active project; the list is capped so the payload stays small at scale.
+    activeProjects: activeProjects.slice(0, ACTIVE_PROJECT_LIST_LIMIT),
     todaysSchedule,
     upcomingTasks: upcoming,
     overdueTasks: overdue,

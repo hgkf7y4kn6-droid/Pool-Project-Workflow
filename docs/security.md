@@ -177,7 +177,7 @@ The provider key stays on the server, and `AI_PROVIDER=none` disables the featur
 - [ ] Have admins and project managers enable MFA (Settings → Security), and review the **Roles & permissions** overrides.
 - [ ] Database: TLS, a non-superuser app role, backups and point-in-time recovery.
 - [ ] Forward logs (pino JSON) to your log platform. Alert on `refresh token reuse detected` and on 5xx rates.
-- [ ] Run `npm audit` and image scanning in CI.
+- [x] `npm audit` runs in CI and blocks on critical findings; high findings are reported as warnings (remaining ones come from Expo build tooling). Image scanning is still open.
 
 ## Known limitations
 

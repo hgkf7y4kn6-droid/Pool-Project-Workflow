@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, ne, sql } from "drizzle-orm";
 import { DEFAULT_INSPECTION_TEMPLATES, DEFAULT_ORG_SETTINGS, DEFAULT_STAGE_TEMPLATES } from "@pool/core";
 import {
   authTokens,
@@ -21,6 +21,8 @@ type UserRow = typeof users.$inferSelect;
 
 const MAX_FAILED_LOGINS = 8;
 const LOCKOUT_MINUTES = 15;
+/** How long the previous refresh token stays usable after a rotation (lost-response retries). */
+const REFRESH_GRACE_MS = 30_000;
 
 export interface RequestMeta {
   ip?: string;
@@ -200,30 +202,55 @@ export async function verifyMfa(deps: Deps, ticket: string, code: string, meta: 
 }
 
 /**
- * Rotate a refresh token. Presenting an already-rotated token means it was
- * stolen or replayed: the whole session is revoked.
+ * Rotate a refresh token. Presenting an already-rotated token after the grace
+ * window means it was stolen or replayed: the whole session is revoked.
+ *
+ * Inside the window, the previous token is accepted once more and rotates
+ * again. A phone on a poor connection can lose the response to a rotation and
+ * retry with the token it still holds; that must not sign the worker out.
+ * Every rotation is a compare-and-set, so concurrent requests with one token
+ * cannot both win.
  */
 export async function refresh(deps: Deps, refreshToken: string): Promise<AuthTokens> {
   const hash = sha256(refreshToken);
-  const now = new Date().toISOString();
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
   const [session] = await deps.db.select().from(sessions).where(eq(sessions.refreshTokenHash, hash)).limit(1);
-  if (!session) {
-    const [reused] = await deps.db.select().from(sessions).where(eq(sessions.previousTokenHash, hash)).limit(1);
-    if (reused && !reused.revokedAt) {
-      await deps.db.update(sessions).set({ revokedAt: now }).where(eq(sessions.id, reused.id));
-      deps.log.warn({ sessionId: reused.id }, "refresh token reuse detected; session revoked");
+  let matched = session;
+  let retry = false;
+  if (!matched) {
+    const [prior] = await deps.db.select().from(sessions).where(eq(sessions.previousTokenHash, hash)).limit(1);
+    if (!prior || prior.revokedAt) throw unauthorized("Session expired");
+    if (nowMs - Date.parse(prior.lastUsedAt) > REFRESH_GRACE_MS) {
+      await deps.db.update(sessions).set({ revokedAt: now }).where(eq(sessions.id, prior.id));
+      deps.log.warn({ sessionId: prior.id }, "refresh token reuse detected; session revoked");
+      throw unauthorized("Session expired");
     }
-    throw unauthorized("Session expired");
+    matched = prior;
+    retry = true;
   }
-  if (session.revokedAt || Date.parse(session.expiresAt) < Date.now()) throw unauthorized("Session expired");
-  const [user] = await deps.db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+  if (matched.revokedAt || Date.parse(matched.expiresAt) < nowMs) throw unauthorized("Session expired");
+  const [user] = await deps.db.select().from(users).where(eq(users.id, matched.userId)).limit(1);
   if (!user || !user.isActive) throw unauthorized("Account is disabled");
   const next = randomToken();
-  await deps.db
+  const swapped = await deps.db
     .update(sessions)
     .set({ refreshTokenHash: sha256(next), previousTokenHash: hash, lastUsedAt: now })
-    .where(eq(sessions.id, session.id));
-  return issueTokens(deps, user, session.id, next);
+    .where(
+      and(
+        eq(sessions.id, matched.id),
+        isNull(sessions.revokedAt),
+        // A retry replaces the successor the client never received.
+        eq(sessions.refreshTokenHash, matched.refreshTokenHash),
+      ),
+    )
+    .returning({ id: sessions.id });
+  if (swapped.length === 0) {
+    // Lost a race with a parallel rotation of the same token.
+    throw unauthorized("Session expired");
+  }
+  if (retry) deps.log.info({ sessionId: matched.id }, "refresh retried within grace window");
+  return issueTokens(deps, user, matched.id, next);
 }
 
 export async function logout(ctx: Ctx): Promise<void> {
@@ -359,6 +386,11 @@ export async function changePassword(ctx: Ctx, current: string, next: string): P
     throw badRequest("Current password is incorrect");
   }
   await ctx.deps.db.update(users).set({ passwordHash: await hashPassword(next) }).where(eq(users.id, u.id));
+  // A changed password signs out every other device, as a reset does.
+  await ctx.deps.db
+    .update(sessions)
+    .set({ revokedAt: new Date().toISOString() })
+    .where(and(eq(sessions.userId, u.id), isNull(sessions.revokedAt), ne(sessions.id, ctx.auth.sessionId)));
 }
 
 export async function mfaSetup(ctx: Ctx): Promise<{ secret: string; otpauthUrl: string }> {

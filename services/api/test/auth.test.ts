@@ -1,4 +1,7 @@
+import { eq } from "drizzle-orm";
+import { sessions } from "@pool/database";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { sha256 } from "../src/lib/crypto";
 import { totpCode } from "../src/lib/totp";
 import { api, createTestApp, login, USERS, type TestApp } from "./helpers";
 
@@ -41,18 +44,69 @@ describe("authentication", () => {
     expect(bad.statusCode).toBe(401);
   });
 
-  it("rotates refresh tokens and revokes the session on reuse", async () => {
+  it("rotates refresh tokens and revokes the session on reuse after the grace window", async () => {
     const res = await t.app.inject({ method: "POST", url: "/auth/login", payload: { email: USERS.worker, password: "PoolDemo2026!" } });
     const first = res.json().data.tokens.refreshToken;
     const r1 = await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: first } });
     expect(r1.statusCode).toBe(200);
     const second = r1.json().data.refreshToken;
     expect(second).not.toBe(first);
-    // Replaying the old token is treated as theft: the whole session dies.
+    // Age the rotation past the grace window; replaying the old token is theft and the session dies.
+    await t.container.deps.db
+      .update(sessions)
+      .set({ lastUsedAt: new Date(Date.now() - 120_000).toISOString() })
+      .where(eq(sessions.refreshTokenHash, sha256(second)));
     const replay = await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: first } });
     expect(replay.statusCode).toBe(401);
     const afterReuse = await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: second } });
     expect(afterReuse.statusCode).toBe(401);
+  });
+
+  it("keeps the session when a rotation response was lost and the client retries", async () => {
+    const res = await t.app.inject({ method: "POST", url: "/auth/login", payload: { email: USERS.worker, password: "PoolDemo2026!" } });
+    const first = res.json().data.tokens.refreshToken;
+    const lost = await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: first } });
+    expect(lost.statusCode).toBe(200); // the phone never saw this response
+    const retry = await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: first } });
+    expect(retry.statusCode).toBe(200);
+    const kept = retry.json().data.refreshToken;
+    const next = await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: kept } });
+    expect(next.statusCode).toBe(200);
+  });
+
+  it("lets only one of several parallel refreshes of the same token win", async () => {
+    const res = await t.app.inject({ method: "POST", url: "/auth/login", payload: { email: USERS.worker, password: "PoolDemo2026!" } });
+    const token = res.json().data.tokens.refreshToken;
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: token } })),
+    );
+    const ok = results.filter((r) => r.statusCode === 200).length;
+    expect(ok).toBeGreaterThanOrEqual(1);
+    expect(results.every((r) => r.statusCode === 200 || r.statusCode === 401)).toBe(true);
+  });
+
+  it("signs out other devices when the password changes but keeps the current one", async () => {
+    const mk = async () => (await t.app.inject({ method: "POST", url: "/auth/login", payload: { email: USERS.client, password: "PoolDemo2026!" } })).json().data.tokens;
+    const a = await mk();
+    const b = await mk();
+    const change = await t.app.inject({
+      method: "POST",
+      url: "/auth/password/change",
+      headers: { authorization: `Bearer ${a.accessToken}` },
+      payload: { currentPassword: "PoolDemo2026!", newPassword: "TempChange2026!" },
+    });
+    expect(change.statusCode).toBeLessThan(300);
+    expect((await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: b.refreshToken } })).statusCode).toBe(401);
+    const kept = await t.app.inject({ method: "POST", url: "/auth/refresh", payload: { refreshToken: a.refreshToken } });
+    expect(kept.statusCode).toBe(200);
+    // Restore the shared fixture password for later tests.
+    const restore = await t.app.inject({
+      method: "POST",
+      url: "/auth/password/change",
+      headers: { authorization: `Bearer ${kept.json().data.accessToken}` },
+      payload: { currentPassword: "TempChange2026!", newPassword: "PoolDemo2026!" },
+    });
+    expect(restore.statusCode).toBeLessThan(300);
   });
 
   it("registers a new organization with default templates", async () => {
