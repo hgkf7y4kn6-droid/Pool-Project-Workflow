@@ -44,11 +44,15 @@ The web/admin app is a static Expo web export, defined in `render.yaml`.
 
 | Variable | Value |
 |---|---|
-| `DATABASE_URL` | Supabase **Connect → Session pooler** URI, with the database password filled in |
+| `DATABASE_URL` | Session pooler URI for the dedicated `pool_api` login: `postgresql://pool_api.<ref>:<password>@aws-0-us-west-1.pooler.supabase.com:5432/postgres`. `pool_api` owns the app's tables (so it bypasses their RLS) but isn't a superuser. Never use the direct `db.<ref>.supabase.co` host: it is IPv6-only and unreachable from Render. |
 | `DATABASE_SSL_CA` | Supabase **Database → Settings → SSL Configuration** certificate (PEM, or base64 of it) |
 | `SUPABASE_SECRET_KEY` | Supabase **Settings → API Keys → Secret keys** (`sb_secret_…`) |
 | `JWT_SECRET` | Render **Generate** |
 | `DATA_ENCRYPTION_KEY` | Render **Generate**, which produces a 32-byte base64 value |
+
+Until the `pool-api` subdomain is live, `pool-pm-web` builds with `EXPO_PUBLIC_API_URL=https://pool-pm-api.onrender.com`; switch it back once the domain verifies.
+
+If the static site is served without the COOP/COEP headers, the app installs `public/coi-serviceworker.js` and reloads once to become cross-origin isolated, because the web SQLite worker needs it. The headers are still preferred.
 
 The empty staging database has no demo data. Create the first company with **Set up your company** on the sign-in screen.
 

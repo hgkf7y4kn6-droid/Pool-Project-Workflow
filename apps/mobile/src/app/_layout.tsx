@@ -10,6 +10,7 @@ import { useColorScheme } from "react-native";
 import { QueryProvider } from "@/providers/query";
 import { SessionProvider } from "@/providers/session";
 import { SyncProvider } from "@/providers/sync";
+import { useCrossOriginIsolation } from "@/lib/cross-origin-isolation";
 
 import "../../global.css";
 
@@ -30,7 +31,9 @@ export default function RootLayout() {
   });
 
   // If fonts fail to load the system font is used rather than blocking the app.
-  const ready = fontsLoaded || !!fontError;
+  // On web, wait for cross-origin isolation (the local database needs it).
+  const isolated = useCrossOriginIsolation();
+  const ready = (fontsLoaded || !!fontError) && isolated;
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
