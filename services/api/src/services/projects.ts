@@ -189,10 +189,13 @@ async function nextProjectNumber(tx: DbOrTx, organizationId: string, year: numbe
   // Serialize numbering per organization for the rest of this transaction.
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${organizationId}))`);
   const prefix = `P-${year}-`;
+  // The ::int cast matters: an untyped parameter makes Postgres pick substring(text from pattern),
+  // the regex form, which never matched — so every second project of a year collided.
+  const from = sql`${prefix.length + 1}::int`;
   const [row] = await tx
-    .select({ n: sql<number>`coalesce(max(substring(${projects.number} from ${prefix.length + 1})::int), 0)` })
+    .select({ n: sql<number>`coalesce(max(substring(${projects.number} from ${from})::int), 0)` })
     .from(projects)
-    .where(and(eq(projects.organizationId, organizationId), sql`${projects.number} like ${prefix + "%"}`, sql`substring(${projects.number} from ${prefix.length + 1}) ~ '^[0-9]+$'`));
+    .where(and(eq(projects.organizationId, organizationId), sql`${projects.number} like ${prefix + "%"}`, sql`substring(${projects.number} from ${from}) ~ '^[0-9]+$'`));
   return `${prefix}${String((row?.n ?? 0) + 1).padStart(3, "0")}`;
 }
 

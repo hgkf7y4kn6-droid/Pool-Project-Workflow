@@ -2,9 +2,10 @@ import { Queue, Worker } from "bullmq";
 import { JOB_NAMES, QUEUE_NAME, createContainer, jobHandlers, loadEnv, type JobName } from "@pool/api";
 
 /**
- * Background worker: thumbnails, push delivery, weather scans and overdue
- * scans. Jobs are retried with exponential backoff (see BullJobQueue); a job
- * that exhausts its attempts stays in the failed set for inspection.
+ * Background worker: thumbnails, push delivery, weather and overdue scans,
+ * and project intelligence (event-driven evaluations, agent briefings, daily
+ * scan, escalation). Jobs are retried with exponential backoff (see
+ * BullJobQueue); a job that exhausts its attempts stays in the failed set.
  */
 const env = loadEnv();
 if (!env.REDIS_URL) {
@@ -39,6 +40,11 @@ worker.on("completed", (job) => deps.log.debug({ job: job.name, id: job.id }, "j
 const scheduler = new Queue(QUEUE_NAME, { connection });
 await scheduler.upsertJobScheduler("weather-scan", { pattern: "0 */3 * * *" }, { name: "weather.scan", data: {} });
 await scheduler.upsertJobScheduler("overdue-scan", { pattern: "0 13 * * *" }, { name: "tasks.overdue_scan", data: {} });
+if (env.INTELLIGENCE_ENABLED) {
+  await scheduler.upsertJobScheduler("intelligence-daily", { pattern: "0 12 * * *" }, { name: "intelligence.daily_scan", data: {} });
+  await scheduler.upsertJobScheduler("intelligence-escalate", { pattern: "30 * * * *" }, { name: "intelligence.escalate", data: {} });
+  await scheduler.upsertJobScheduler("intelligence-weekly", { pattern: "0 13 * * 1" }, { name: "intelligence.weekly_review", data: {} });
+}
 deps.log.info("worker started");
 
 const shutdown = async () => {

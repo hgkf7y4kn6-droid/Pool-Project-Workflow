@@ -3,6 +3,7 @@ import type { Ctx, Deps } from "../context";
 import { unauthorized } from "../lib/errors";
 import { verifyAccessToken } from "../lib/tokens";
 import { isSessionActive } from "../services/auth";
+import { scheduleProjectEvaluation } from "../services/intelligence/trigger";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -29,6 +30,7 @@ export async function authenticate(deps: Deps, request: FastifyRequest): Promise
     auth: { userId: claims.sub, organizationId: claims.org, role: claims.role, clientId: claims.cid, sessionId: claims.sid },
     ip: request.ip,
     requestId: request.id,
+    changedProjects: new Map(),
   };
 }
 
@@ -38,6 +40,13 @@ export function authenticated(app: FastifyInstance, deps: Deps, register: (scope
     scope.decorateRequest("ctx", null as unknown as Ctx);
     scope.addHook("onRequest", async (request) => {
       request.ctx = await authenticate(deps, request);
+    });
+    // After the response: every transaction in the request has committed (or rolled back).
+    scope.addHook("onResponse", async (request) => {
+      const changed = request.ctx?.changedProjects;
+      if (!changed?.size) return;
+      for (const [projectId, trigger] of changed) await scheduleProjectEvaluation(deps, request.ctx.auth.organizationId, projectId, trigger);
+      changed.clear();
     });
     register(scope);
   });

@@ -78,6 +78,21 @@ const envSchema = z
     ANTHROPIC_API_KEY: z.string().optional(),
     AI_MODEL: z.string().default("claude-opus-5-5"),
 
+    /** Project intelligence (docs/intelligence.md). false stops triggers and scans; reads still work. */
+    INTELLIGENCE_ENABLED: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
+    /** crewai = services/crew; anthropic = single-call fallback via AI_PROVIDER; none = rules only. */
+    INTELLIGENCE_AGENT_PROVIDER: z.enum(["crewai", "anthropic", "none"]).optional(),
+    CREW_SERVICE_URL: z.string().url().optional(),
+    CREW_SERVICE_TOKEN: z.string().min(24).optional(),
+    INTELLIGENCE_AGENT_TIMEOUT_MS: z.coerce.number().int().min(1000).default(90_000),
+    /** Coalesce bursts of edits into one evaluation per project per window. */
+    INTELLIGENCE_DEBOUNCE_MS: z.coerce.number().int().min(0).default(5_000),
+    /** Run daily/hourly intelligence scans inside the API when there is no worker (no REDIS_URL). */
+    INTELLIGENCE_INPROCESS_SCHEDULER: z.enum(["true", "false"]).optional(),
+
     RATE_LIMIT_MAX: z.coerce.number().int().default(300),
     AUTH_RATE_LIMIT_MAX: z.coerce.number().int().default(20),
     SENTRY_DSN: z.string().optional(),
@@ -102,6 +117,12 @@ const envSchema = z
     }
     if (env.AI_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY) {
       ctx.addIssue({ code: "custom", path: ["ANTHROPIC_API_KEY"], message: "ANTHROPIC_API_KEY is required for anthropic" });
+    }
+    if (env.INTELLIGENCE_AGENT_PROVIDER === "crewai" && (!env.CREW_SERVICE_URL || !env.CREW_SERVICE_TOKEN)) {
+      ctx.addIssue({ code: "custom", path: ["CREW_SERVICE_URL"], message: "CREW_SERVICE_URL and CREW_SERVICE_TOKEN are required for the crewai agent provider" });
+    }
+    if (env.INTELLIGENCE_AGENT_PROVIDER === "anthropic" && env.AI_PROVIDER !== "anthropic") {
+      ctx.addIssue({ code: "custom", path: ["INTELLIGENCE_AGENT_PROVIDER"], message: "The anthropic agent provider needs AI_PROVIDER=anthropic" });
     }
     if (isDeployedEnv(env.APP_ENV) && env.STORAGE_DRIVER === "local") {
       ctx.addIssue({ code: "custom", path: ["STORAGE_DRIVER"], message: "Use object storage (supabase or s3) outside development" });

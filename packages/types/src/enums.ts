@@ -260,6 +260,7 @@ export const NOTIFICATION_TYPES = [
   "weather_warning",
   "milestone_completed",
   "sync_failed",
+  "intelligence_alert",
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -276,6 +277,7 @@ export const NOTIFICATION_TYPE_LABELS: Record<NotificationType, string> = {
   weather_warning: "Weather warning",
   milestone_completed: "Milestone completed",
   sync_failed: "Sync failed",
+  intelligence_alert: "Project alert",
 };
 
 export const NOTIFICATION_CHANNELS = ["push", "email", "in_app"] as const;
@@ -349,5 +351,7 @@ export const ACTIVITY_ACTIONS = [
   "message.sent",
   "client.created",
   "property.updated",
+  "recommendation.updated",
+  "communication.approved",
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

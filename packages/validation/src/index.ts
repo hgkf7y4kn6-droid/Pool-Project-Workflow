@@ -23,6 +23,14 @@ import {
   TASK_STATUSES,
   VISIBILITIES,
 } from "@pool/types";
+import {
+  AGENT_KEYS,
+  COMMUNICATION_AUDIENCES,
+  COMMUNICATION_KINDS,
+  DISMISS_REASONS,
+  RECOMMENDATION_STATUSES,
+  SEVERITIES,
+} from "@pool/types";
 import { LIMITS } from "@pool/config";
 
 /*
@@ -442,6 +450,11 @@ export const materialUsageSchema = z.object({
   status: z.enum(["planned", "ordered", "delivered", "installed", "returned"]).default("planned"),
   orderedAt: isoDate.nullish(),
   deliveredAt: isoDate.nullish(),
+  requiredBy: isoDate.nullish(),
+  expectedDeliveryDate: isoDate.nullish(),
+  deliveryConfirmedAt: isoDateTime.nullish(),
+  leadTimeDays: z.number().int().min(0).max(365).nullish(),
+  vendorId: uuid.nullish(),
 });
 
 export const changeOrderSchema = z.object({
@@ -759,5 +772,83 @@ export type SyncPullInput = z.infer<typeof syncPullSchema>;
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
 export type MaterialUsageInput = z.infer<typeof materialUsageSchema>;
 export type DesignProjectInput = z.infer<typeof designProjectSchema>;
+
+// ---------------------------------------------------------------------------
+// Project intelligence
+// ---------------------------------------------------------------------------
+
+const csvOf = <T extends readonly [string, ...string[]]>(values: T) =>
+  z
+    .string()
+    .max(200)
+    .transform((v) => v.split(",").map((x) => x.trim()).filter(Boolean))
+    .pipe(z.array(z.enum(values)).max(values.length));
+
+export const recommendationListQuery = z.object({
+  projectId: uuid.optional(),
+  /** Comma-separated statuses, or "active" (open, acknowledged, in progress, snoozed, escalated). */
+  status: z.union([z.literal("active"), csvOf(RECOMMENDATION_STATUSES)]).default("active"),
+  severity: csvOf(SEVERITIES).optional(),
+  agent: csvOf(AGENT_KEYS).optional(),
+  assigneeId: z.union([uuid, z.literal("me")]).optional(),
+  cursor: z.string().max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export const recommendationAssignSchema = z.object({ assigneeId: uuid.nullable(), note: optionalText(1000) });
+export const recommendationSnoozeSchema = z.object({ days: z.number().int().min(1).max(30), note: optionalText(1000) });
+export const recommendationDismissSchema = z.object({ reason: z.enum(DISMISS_REASONS), note: optionalText(1000) });
+export const recommendationNoteSchema = z.object({ note: optionalText(1000) });
+
+export const intelligenceAskSchema = z.object({
+  question: z.string().trim().min(3).max(2000),
+});
+
+export const communicationDraftCreateSchema = z.object({
+  audience: z.enum(COMMUNICATION_AUDIENCES),
+  kind: z.enum(COMMUNICATION_KINDS),
+  recommendationId: uuid.nullish(),
+  /** Optional guidance for the writer ("mention the gate code change"). Treated as data, not instructions. */
+  guidance: optionalText(500),
+});
+
+export const communicationDraftUpdateSchema = z.object({
+  subject: trimmed(200).optional(),
+  body: z.string().trim().min(1).max(10_000).optional(),
+  version: z.number().int().min(1),
+});
+
+export const communicationApproveSchema = z.object({
+  version: z.number().int().min(1),
+  /** Post homeowner drafts to the client message thread on approval. */
+  post: z.boolean().default(true),
+});
+export const communicationRejectSchema = z.object({ reason: trimmed(1000) });
+
+const stageKeyList = z.array(z.string().trim().min(1).max(60)).max(20);
+export const intelligenceSettingsSchema = z
+  .object({
+    enabled: z.boolean(),
+    lookaheadDays: z.number().int().min(3).max(60),
+    attentionWindowDays: z.number().int().min(1).max(30),
+    criticalWindowDays: z.number().int().min(0).max(14),
+    criticalOverdueDays: z.number().int().min(0).max(60),
+    slipDaysHigh: z.number().int().min(1).max(120),
+    clientUpdateDays: z.number().int().min(1).max(60),
+    inactivityDays: z.number().int().min(1).max(60),
+    decisionDueSoonDays: z.number().int().min(0).max(30),
+    changeOrderWaitDays: z.number().int().min(1).max(60),
+    deliveryConfirmDays: z.number().int().min(1).max(60),
+    defaultLeadTimeDays: z.number().int().min(0).max(365),
+    escalateAfterDays: z.number().int().min(1).max(30),
+    permitGateFromStage: z.string().trim().min(1).max(60),
+    inspectionGates: z.record(z.string().max(60), stageKeyList),
+    concealment: z.record(z.string().max(60), stageKeyList),
+    notifyMinSeverity: z.enum(SEVERITIES),
+    briefingDepth: z.enum(["compact", "full"]),
+    dailyAgentBriefings: z.boolean(),
+    dailyAgentRunLimit: z.number().int().min(0).max(10_000),
+  })
+  .partial();
 
 export { z };

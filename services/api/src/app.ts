@@ -10,6 +10,7 @@ import { AppError } from "./lib/errors";
 import { ok } from "./lib/http";
 import { authRoutes } from "./routes/auth";
 import { generalRoutes } from "./routes/general";
+import { intelligenceRoutes } from "./routes/intelligence";
 import { projectRoutes } from "./routes/projects";
 import { realtimeRoutes } from "./routes/realtime";
 import { localStorageRoutes } from "./routes/storage";
@@ -78,6 +79,7 @@ export async function buildApp(deps: Deps): Promise<FastifyInstance> {
   authRoutes(app, deps);
   projectRoutes(app, deps);
   generalRoutes(app, deps);
+  intelligenceRoutes(app, deps);
   realtimeRoutes(app, deps);
   localStorageRoutes(app, deps);
   return app;

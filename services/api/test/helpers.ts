@@ -40,7 +40,7 @@ export const fakeWeather: WeatherProvider = {
   },
 };
 
-export async function createTestApp(): Promise<TestApp> {
+export async function createTestApp(overrides: Partial<import("../src/context").Deps> = {}): Promise<TestApp> {
   const env = loadEnv({
     APP_ENV: "test",
     DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgres://postgres@localhost:5432/pool_test",
@@ -52,10 +52,12 @@ export async function createTestApp(): Promise<TestApp> {
     LOG_LEVEL: "error",
     RATE_LIMIT_MAX: "10000",
     AUTH_RATE_LIMIT_MAX: "10000",
+    // Short debounce so event-triggered evaluations run after the write commits, then drain().
+    INTELLIGENCE_DEBOUNCE_MS: "25",
   });
   const mailer = new ConsoleMailer(() => undefined);
   const push = new LogPushProvider();
-  const container = createContainer(env, { mailer, push, weather: fakeWeather, log: pino({ level: "error" }) });
+  const container = createContainer(env, { mailer, push, weather: fakeWeather, log: pino({ level: "error" }), ...overrides });
   const app = await buildApp(container.deps);
   return {
     app,

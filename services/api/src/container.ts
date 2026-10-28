@@ -3,6 +3,9 @@ import pino from "pino";
 import type { Env } from "./config/env";
 import type { Deps } from "./context";
 import { AnthropicAiProvider } from "./adapters/ai/anthropic";
+import { AnthropicAgentProvider } from "./adapters/agents/anthropic";
+import { CrewAiAgentProvider } from "./adapters/agents/crewai";
+import type { AgentProvider } from "./adapters/agents/types";
 import { HttpDesignProvider } from "./adapters/design/http";
 import { DesignProviderRegistry } from "./adapters/design/registry";
 import { BullJobQueue, InlineJobQueue, JOB_NAMES } from "./adapters/jobs";
@@ -51,6 +54,15 @@ export function createContainer(env: Env, overrides: Partial<Deps> = {}): Contai
   const designs = new DesignProviderRegistry();
   if (env.DESIGN_PROVIDER_HTTP_URL) designs.register(new HttpDesignProvider(env.DESIGN_PROVIDER_HTTP_URL, env.DESIGN_PROVIDER_HTTP_TOKEN));
 
+  const ai = env.AI_PROVIDER === "anthropic" && env.ANTHROPIC_API_KEY ? new AnthropicAiProvider(env.ANTHROPIC_API_KEY, env.AI_MODEL) : null;
+  const agentProvider = env.INTELLIGENCE_AGENT_PROVIDER ?? (env.CREW_SERVICE_URL && env.CREW_SERVICE_TOKEN ? "crewai" : ai ? "anthropic" : "none");
+  const agents: AgentProvider | null =
+    agentProvider === "crewai" && env.CREW_SERVICE_URL && env.CREW_SERVICE_TOKEN
+      ? new CrewAiAgentProvider(env.CREW_SERVICE_URL, env.CREW_SERVICE_TOKEN, env.INTELLIGENCE_AGENT_TIMEOUT_MS)
+      : agentProvider === "anthropic" && ai
+        ? new AnthropicAgentProvider(ai)
+        : null;
+
   const inlineJobs = env.REDIS_URL ? null : new InlineJobQueue((msg, err) => log.warn({ err }, msg));
   const deps: Deps = {
     db,
@@ -67,7 +79,8 @@ export function createContainer(env: Env, overrides: Partial<Deps> = {}): Contai
       (env.GOOGLE_OAUTH_CLIENT_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
       (env.APPLE_OAUTH_CLIENT_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     ),
-    ai: env.AI_PROVIDER === "anthropic" && env.ANTHROPIC_API_KEY ? new AnthropicAiProvider(env.ANTHROPIC_API_KEY, env.AI_MODEL) : null,
+    ai,
+    agents,
     now: () => new Date(),
     ...overrides,
   };

@@ -18,6 +18,21 @@ import {
 } from "drizzle-orm/pg-core";
 import {
   ACTIVITY_ACTIONS,
+  AGENT_KEYS,
+  AGENT_RUN_KINDS,
+  COMMUNICATION_AUDIENCES,
+  COMMUNICATION_KINDS,
+  COMMUNICATION_STATUSES,
+  CONFIDENCES,
+  DISMISS_REASONS,
+  RECOMMENDATION_STATUSES,
+  SEVERITIES,
+  type CommunicationFact,
+  type Evidence,
+  type ImpactRef,
+  type ProjectBriefing,
+  type ProjectReadiness,
+  type ProposedAction,
   APPROVAL_STATUSES,
   APPROVAL_SUBJECTS,
   BUDGET_CATEGORIES,
@@ -689,6 +704,14 @@ export const materialUsage = pgTable(
       .default("planned"),
     orderedAt: date(),
     deliveredAt: date(),
+    /** Date the material must be on site (defaults to the linked task's planned start). */
+    requiredBy: date(),
+    /** Supplier's promised delivery date. */
+    expectedDeliveryDate: date(),
+    /** When the supplier confirmed the expected date. */
+    deliveryConfirmedAt: ts(),
+    leadTimeDays: integer(),
+    vendorId: uuid().references(() => vendors.id, { onDelete: "set null" }),
     ...audit,
     version: integer().notNull().default(1),
   },
@@ -1171,6 +1194,182 @@ export const integrations = pgTable(
     ...audit,
   },
   (t) => [uniqueIndex().on(t.organizationId, t.provider)],
+);
+
+// ---------------------------------------------------------------------------
+// Project intelligence (docs/intelligence.md)
+// ---------------------------------------------------------------------------
+
+/** One row per finding; re-evaluations update it in place via (project_id, dedupe_key). */
+export const intelligenceRecommendations = pgTable(
+  "intelligence_recommendations",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    agent: text({ enum: AGENT_KEYS }).notNull(),
+    ruleKey: text().notNull(),
+    category: text().notNull(),
+    dedupeKey: text().notNull(),
+    /** Evidence + severity fingerprint; a dismissed item only reopens when this changes. */
+    fingerprint: text().notNull(),
+    severity: text({ enum: SEVERITIES }).notNull(),
+    confidence: text({ enum: CONFIDENCES }).notNull(),
+    title: text().notNull(),
+    observation: text().notNull(),
+    risk: text().notNull(),
+    recommendedAction: text().notNull(),
+    responsibleRole: text().notNull(),
+    assigneeId: uuid().references(() => users.id, { onDelete: "set null" }),
+    suggestedDueDate: date(),
+    dueRationale: text().notNull(),
+    subjectType: text().notNull(),
+    subjectId: uuid().notNull(),
+    stageId: uuid().references(() => projectStages.id, { onDelete: "set null" }),
+    evidence: jsonb().$type<Evidence[]>().notNull(),
+    impact: jsonb().$type<ImpactRef[]>().notNull().default([]),
+    missingData: boolean().notNull().default(false),
+    requiresApproval: boolean().notNull().default(false),
+    proposedAction: jsonb().$type<ProposedAction>(),
+    /** Entity created when the proposed action was approved (idempotency). */
+    actionResult: jsonb().$type<{ entityType: string; entityId: string }>(),
+    status: text({ enum: RECOMMENDATION_STATUSES }).notNull().default("open"),
+    snoozedUntil: ts(),
+    escalationLevel: integer().notNull().default(0),
+    reevaluateWhen: text().notNull(),
+    expiresAt: date(),
+    firstDetectedAt: ts().notNull().defaultNow(),
+    lastDetectedAt: ts().notNull().defaultNow(),
+    resolvedAt: ts(),
+    resolvedBy: uuid(),
+    resolutionNote: text(),
+    dismissReason: text({ enum: DISMISS_REASONS }),
+    evaluationId: uuid(),
+    ...audit,
+  },
+  (t) => [
+    uniqueIndex().on(t.projectId, t.dedupeKey),
+    index().on(t.organizationId, t.status, t.severity),
+    index().on(t.projectId, t.status),
+    index().on(t.assigneeId, t.status),
+  ],
+);
+
+/** Append-only history of recommendation changes (who, or which automation). */
+export const intelligenceRecommendationEvents = pgTable(
+  "intelligence_recommendation_events",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    recommendationId: uuid()
+      .notNull()
+      .references(() => intelligenceRecommendations.id, { onDelete: "cascade" }),
+    action: text().notNull(),
+    fromStatus: text({ enum: RECOMMENDATION_STATUSES }),
+    toStatus: text({ enum: RECOMMENDATION_STATUSES }),
+    actorId: uuid().references(() => users.id, { onDelete: "set null" }),
+    automationPolicy: text(),
+    note: text(),
+    metadata: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: ts().notNull().defaultNow(),
+  },
+  (t) => [index().on(t.recommendationId, t.createdAt)],
+);
+
+/** One row per rules evaluation of a project. */
+export const intelligenceEvaluations = pgTable(
+  "intelligence_evaluations",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    trigger: text().notNull(),
+    triggeredBy: uuid(),
+    /** Hash of the snapshot + settings; an identical hash skips persistence work. */
+    inputHash: text().notNull(),
+    readiness: jsonb().$type<ProjectReadiness>().notNull(),
+    briefing: jsonb().$type<ProjectBriefing>().notNull(),
+    counts: jsonb().$type<Record<string, number>>().notNull(),
+    opened: integer().notNull().default(0),
+    updated: integer().notNull().default(0),
+    closed: integer().notNull().default(0),
+    durationMs: integer().notNull(),
+    createdAt: ts().notNull().defaultNow(),
+  },
+  (t) => [index().on(t.projectId, t.createdAt), index().on(t.organizationId, t.createdAt)],
+);
+
+/** One row per LLM / CrewAI execution. Stores validated output only, never prompts or reasoning. */
+export const agentRuns = pgTable(
+  "agent_runs",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: uuid().references(() => projects.id, { onDelete: "cascade" }),
+    kind: text({ enum: AGENT_RUN_KINDS }).notNull(),
+    provider: text().notNull(),
+    model: text(),
+    status: text({ enum: ["running", "succeeded", "failed", "rejected"] }).notNull(),
+    /** Same key + succeeded ⇒ the stored output is reused (retries, unchanged data). */
+    idempotencyKey: text().notNull(),
+    inputHash: text().notNull(),
+    requestedBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    startedAt: ts().notNull().defaultNow(),
+    finishedAt: ts(),
+    latencyMs: integer(),
+    inputTokens: integer(),
+    outputTokens: integer(),
+    error: text(),
+    output: jsonb().$type<Record<string, unknown>>(),
+    validationIssues: jsonb().$type<string[]>().notNull().default([]),
+  },
+  (t) => [
+    uniqueIndex().on(t.organizationId, t.idempotencyKey),
+    index().on(t.organizationId, t.startedAt),
+    index().on(t.projectId, t.kind, t.startedAt),
+  ],
+);
+
+export const communicationDrafts = pgTable(
+  "communication_drafts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    audience: text({ enum: COMMUNICATION_AUDIENCES }).notNull(),
+    kind: text({ enum: COMMUNICATION_KINDS }).notNull(),
+    subject: text().notNull(),
+    body: text().notNull(),
+    status: text({ enum: COMMUNICATION_STATUSES }).notNull().default("draft"),
+    source: text({ enum: ["agent", "template", "manual"] }).notNull(),
+    facts: jsonb().$type<CommunicationFact[]>().notNull().default([]),
+    unsupportedClaims: jsonb().$type<string[]>().notNull().default([]),
+    recommendationId: uuid().references(() => intelligenceRecommendations.id, { onDelete: "set null" }),
+    agentRunId: uuid().references(() => agentRuns.id, { onDelete: "set null" }),
+    postedMessageId: uuid(),
+    approvedBy: uuid(),
+    approvedAt: ts(),
+    rejectionReason: text(),
+    ...audit,
+    version: integer().notNull().default(1),
+  },
+  (t) => [index().on(t.projectId, t.status, t.createdAt)],
 );
 
 // ---------------------------------------------------------------------------

@@ -72,6 +72,10 @@ export const PERMISSIONS = [
   "activity:read",
   "activity:read_internal",
   "ai:use",
+  "intelligence:read",
+  "intelligence:manage",
+  "intelligence:approve",
+  "intelligence:configure",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -141,6 +145,9 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "report:read",
     "design:manage",
     "ai:use",
+    "intelligence:read",
+    "intelligence:manage",
+    "intelligence:approve",
   ]),
   designer: new Set<Permission>([
     "project:read",
@@ -180,6 +187,8 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "document:upload",
     "change_order:create",
     "ai:use",
+    "intelligence:read",
+    "intelligence:manage",
   ]),
   field_worker: new Set<Permission>(FIELD_COMMON),
   subcontractor: new Set<Permission>([

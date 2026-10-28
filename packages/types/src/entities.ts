@@ -1,3 +1,4 @@
+import type { IntelligenceSettings } from "./intelligence";
 import type {
   ApprovalStatus,
   ApprovalSubject,
@@ -84,6 +85,8 @@ export interface OrganizationSettings {
     minTempC: number;
     maxTempC: number;
   };
+  /** Project intelligence thresholds; missing keys fall back to DEFAULT_INTELLIGENCE_SETTINGS. */
+  intelligence?: Partial<IntelligenceSettings>;
 }
 
 export interface User extends Audited {

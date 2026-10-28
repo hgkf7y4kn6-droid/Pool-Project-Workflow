@@ -6,6 +6,11 @@ export const JOB_NAMES = [
   "weather.scan",
   "tasks.overdue_scan",
   "project.recalculate",
+  "intelligence.evaluate",
+  "intelligence.briefing",
+  "intelligence.daily_scan",
+  "intelligence.escalate",
+  "intelligence.weekly_review",
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
@@ -54,17 +59,27 @@ export class BullJobQueue implements JobQueue {
 export class InlineJobQueue implements JobQueue {
   private handlers = new Map<JobName, JobHandler>();
   private pending = new Set<Promise<void>>();
+  /** Job ids queued but not yet started (same semantics as BullMQ's jobId dedupe). */
+  private queuedIds = new Set<string>();
   constructor(private readonly log: (msg: string, err?: unknown) => void = () => undefined) {}
 
   register(name: JobName, handler: JobHandler) {
     this.handlers.set(name, handler);
   }
 
-  async enqueue(name: JobName, data: Record<string, unknown>, options?: { delayMs?: number }) {
+  async enqueue(name: JobName, data: Record<string, unknown>, options?: { delayMs?: number; jobId?: string }) {
     const handler = this.handlers.get(name);
     if (!handler) return;
+    const jobId = options?.jobId;
+    if (jobId) {
+      if (this.queuedIds.has(jobId)) return;
+      this.queuedIds.add(jobId);
+    }
     const run = new Promise<void>((resolve) => setTimeout(resolve, options?.delayMs ?? 0))
-      .then(() => handler(data))
+      .then(() => {
+        if (jobId) this.queuedIds.delete(jobId);
+        return handler(data);
+      })
       .catch((err) => this.log(`job ${name} failed`, err))
       .finally(() => this.pending.delete(run));
     this.pending.add(run);
@@ -72,7 +87,12 @@ export class InlineJobQueue implements JobQueue {
 
   /** Wait for in-process jobs (tests). */
   async drain() {
-    while (this.pending.size) await Promise.all([...this.pending]);
+    // Let post-response hooks (which enqueue after-commit work) run first.
+    await new Promise((resolve) => setImmediate(resolve));
+    while (this.pending.size) {
+      await Promise.all([...this.pending]);
+      await new Promise((resolve) => setImmediate(resolve));
+    }
   }
 
   async close() {

@@ -22,6 +22,13 @@
       "when": 1793122446713,
       "tag": "0002_supabase_lockdown",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793154018999,
+      "tag": "0003_project_intelligence",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { activityLogs, users, type DbOrTx } from "@pool/database";
 import type { ActivityAction } from "@pool/types";
 import { eq } from "drizzle-orm";
 import type { Ctx } from "../context";
+import { projectChanged } from "./intelligence/trigger";
 
 const nameCache = new Map<string, string>();
 
@@ -43,6 +44,8 @@ export async function recordActivity(ctx: Ctx, input: ActivityInput, db: DbOrTx 
     clientVisible: input.clientVisible ?? false,
     ipAddress: ctx.ip ?? null,
   });
+  // Every recorded change re-evaluates the project's intelligence (after commit, debounced).
+  if (input.projectId) await projectChanged(ctx, input.projectId, input.action);
 }
 
 export async function userDisplayName(ctx: Ctx, userId: string): Promise<string | null> {

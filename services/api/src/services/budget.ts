@@ -16,6 +16,7 @@ import {
 } from "@pool/database";
 import type { BudgetItemInput, ExpenseInput, LaborEntryInput, MaterialUsageInput } from "@pool/validation";
 import { materialSchema, updateBudgetSchema, vendorSchema, z } from "@pool/validation";
+import { projectChanged } from "./intelligence/trigger";
 import type { Ctx, Deps } from "../context";
 import { badRequest, forbidden, notFound } from "../lib/errors";
 import { hasPermission, loadProject, requirePermission } from "./access";
@@ -350,6 +351,10 @@ export async function upsertMaterialUsage(ctx: Ctx, projectId: string, input: Ma
     .from(materials)
     .where(and(eq(materials.id, input.materialId), eq(materials.organizationId, ctx.auth.organizationId)));
   if (!material) throw badRequest("Unknown material");
+  if (input.vendorId) {
+    const [vendor] = await ctx.deps.db.select({ id: vendors.id }).from(vendors).where(and(eq(vendors.id, input.vendorId), eq(vendors.organizationId, ctx.auth.organizationId)));
+    if (!vendor) throw badRequest("Unknown vendor");
+  }
   const values = { ...input, unitCostCents: input.unitCostCents ?? material.unitCostCents };
   if (usageId) {
     const [row] = await ctx.deps.db
@@ -358,6 +363,7 @@ export async function upsertMaterialUsage(ctx: Ctx, projectId: string, input: Ma
       .where(and(eq(materialUsage.id, usageId), eq(materialUsage.projectId, projectId)))
       .returning();
     if (!row) throw notFound("Material usage");
+    await projectChanged(ctx, projectId, "material.updated");
     return row;
   }
   const [row] = await ctx.deps.db
@@ -365,6 +371,7 @@ export async function upsertMaterialUsage(ctx: Ctx, projectId: string, input: Ma
     .values({ ...values, projectId, createdBy: ctx.auth.userId })
     .returning();
   await checkBudgetAlerts(ctx.deps, ctx.auth.organizationId, projectId);
+  await projectChanged(ctx, projectId, "material.updated");
   return row!;
 }
 

@@ -3,6 +3,7 @@ import type { Role } from "@pool/types";
 import type { Logger } from "pino";
 import type { Env } from "./config/env";
 import type { AiProvider } from "./adapters/ai/types";
+import type { AgentProvider } from "./adapters/agents/types";
 import type { DesignProviderRegistry } from "./adapters/design/registry";
 import type { JobQueue } from "./adapters/jobs";
 import type { Mailer } from "./adapters/mail";
@@ -26,6 +27,8 @@ export interface Deps {
   jobs: JobQueue;
   oauth: OAuthVerifier;
   ai: AiProvider | null;
+  /** Project-intelligence agents (CrewAI service or single-call fallback); null = rules only. */
+  agents: AgentProvider | null;
   now: () => Date;
 }
 
@@ -44,4 +47,10 @@ export interface Ctx {
   auth: AuthContext;
   ip?: string;
   requestId?: string;
+  /**
+   * Projects changed during this request. Their intelligence is re-evaluated
+   * after the response is sent — i.e. after the request's transactions have
+   * committed. Without it (jobs, scripts) evaluations are queued immediately.
+   */
+  changedProjects?: Map<string, string>;
 }

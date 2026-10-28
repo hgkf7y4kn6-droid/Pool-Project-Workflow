@@ -10,3 +10,4 @@ export * from "./weather";
 export * from "./inspections";
 export * from "./plan";
 export * from "./settings";
+export * from "./intelligence";
