@@ -53,6 +53,51 @@ jobs:
       - name: Backend bundles build
         run: npm run build -w @pool/api && npm run build -w @pool/worker
 
+  crew:
+    name: CrewAI service (pytest + API contract)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # The API test runner's global setup migrates a database, even for the contract test.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pool_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: services/crew
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/pool_test
+      CREWAI_DISABLE_TELEMETRY: "true"
+      CREWAI_TRACING_ENABLED: "false"
+      OTEL_SDK_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: services/crew/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+        working-directory: .
+      - name: API ↔ service contract (scripted model, no network)
+        run: |
+          python -m tests.serve_scripted 8765 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8765/health && break; sleep 1; done
+          cd ../api && CREW_CONTRACT_URL=http://127.0.0.1:8765 npx vitest run test/crew-contract.test.ts
+        working-directory: services/crew
+        shell: bash
+
   e2e:
     name: End-to-end (web build + API + Postgres)
     runs-on: ubuntu-latest

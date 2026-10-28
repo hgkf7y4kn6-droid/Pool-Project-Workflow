@@ -1,0 +1,4 @@
+# Runtime dependencies of the Pool PM CrewAI service (pinned; see README for upgrades).
+crewai[anthropic]==1.15.32
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
