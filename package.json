@@ -1,7 +1,7 @@
 {
   "name": "pool-project-workflow",
   "private": true,
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Cross-platform pool construction project management platform",
   "workspaces": [
     "apps/*",

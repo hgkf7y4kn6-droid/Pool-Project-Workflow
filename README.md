@@ -14,16 +14,18 @@ A cross-platform app for pool builders. It covers the full job lifecycle, from l
 | Documents | Versioned documents, offline copies, measurements (CAD-ready export), 3D design via a pluggable `PoolDesignProvider`. |
 | Collaboration | Activity feed, messages, approvals, push notifications, realtime updates over WebSocket, search and saved views. |
 | Reports | PDF / CSV / Excel exports. AI assistant that only sees what the user is allowed to see. |
+| Project intelligence | Proactive, evidence-backed alerts from deterministic rules (schedule, readiness, procurement, homeowner communication, closeout). Explainable milestone readiness where blockers can't be averaged away. Alert center with assign, snooze and dismiss. Portfolio operations view. Drafts written from verified facts that post only on approval. Optional six-agent CrewAI layer for briefings and Q&A. See [docs/intelligence.md](docs/intelligence.md). |
 
 ## Repository layout
 
 ```
 apps/mobile         Expo app (iOS, Android, web/admin)
 services/api        Fastify REST + WebSocket API
-services/worker     BullMQ worker (photo thumbnails, push delivery, weather and overdue scans, schedule recalculation)
+services/worker     BullMQ worker (photo thumbnails, push delivery, weather and overdue scans, schedule recalculation, intelligence scans)
+services/crew       Optional Python CrewAI service: six read-only project-intelligence agents
 packages/types      Domain enums + entity/DTO types
 packages/validation zod schemas shared by app and API
-packages/core       Pure domain logic: scheduling (CPM), permissions, budget, change orders, weather rules
+packages/core       Pure domain logic: scheduling (CPM), permissions, budget, change orders, weather rules, intelligence rules and readiness
 packages/sync       Offline sync engine (queue, coalescing, backoff, 3-way merge)
 packages/database   Drizzle schema, migrations, seed data
 packages/api-client Typed fetch client with token refresh
@@ -121,6 +123,7 @@ All server configuration is environment variables, validated at startup (`servic
 | `GOOGLE_OAUTH_CLIENT_IDS`, `APPLE_OAUTH_CLIENT_IDS` | Enable social sign-in |
 | `DESIGN_PROVIDER_HTTP_URL/TOKEN` | External 3D pool design service |
 | `AI_PROVIDER`, `ANTHROPIC_API_KEY` | AI assistant; `none` disables it |
+| `INTELLIGENCE_*`, `CREW_SERVICE_URL/TOKEN` | Project intelligence; rules run without them, and agents need a provider. See [docs/intelligence.md](docs/intelligence.md). |
 | `EXPO_PUBLIC_API_URL` | The only value the app needs. Everything `EXPO_PUBLIC_*` ships in the bundle, so never put secrets there. |
 
 ## Production
@@ -136,6 +139,7 @@ The short version is below. [docs/deployment.md](docs/deployment.md) has the ful
 ## Documentation
 
 - [Architecture and decisions](docs/architecture.md)
+- [Project intelligence (rules, readiness, CrewAI agents)](docs/intelligence.md)
 - [Design system: brand, type, motion and UX patterns](docs/design-system.md)
 - [API reference](docs/api.md)
 - [Offline-first and sync](docs/offline-sync.md)

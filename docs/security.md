@@ -131,6 +131,39 @@ Clients and subcontractors are *external*. They never receive internal-only data
 
 The provider key stays on the server, and `AI_PROVIDER=none` disables the feature entirely. The assistant only drafts text; it cannot change data.
 
+### Project intelligence and agents
+
+[intelligence.md](intelligence.md) has the full design. The controls:
+
+- **Capabilities.**
+  - `intelligence:read` and `intelligence:manage`: admin, project manager, field supervisor.
+  - `intelligence:approve`: admin and project manager.
+  - `intelligence:configure`: admin.
+  - Clients and subcontractors get none of these, and overrides can't grant them to external roles.
+  - Every endpoint also checks row-level project access and returns 404 for anything else.
+- **Internal view without money.** The rules snapshot and agent data are an internal view **without costs, margins or prices**. Homeowner and vendor drafts get only audience-scoped facts (client-visible stages, decisions addressed to the homeowner, the material in question), never internal records or findings.
+- **Rules decide.**
+  - Severity, readiness and due dates come from deterministic rules with stored evidence, not from an LLM.
+  - A blocked mandatory gate (permit, inspection) can't be averaged away: the score is capped at 40.
+  - The app never certifies compliance or approves an inspection; safety-critical items are flagged for a qualified person.
+- **Agents can't act.**
+  - CrewAI agents have no tools, delegation or memory, and no database access.
+  - Project text reaches them inside a delimited data block, sanitized, with the question quoted as data.
+- **Output is untrusted.** The API re-parses every agent response with zod and drops citations to records that weren't in the data. It rejects output that calls a blocked milestone ready, and rejects proposed actions outside the allowlist (`create_task`, `request_approval`, `draft_message`). Both are recorded in `agent_runs.validation_issues`.
+- **Humans approve consequences.**
+  - Proposed actions run only when an `intelligence:approve` user approves them, as that user, through the normal services, so those services' own permission and row checks apply.
+  - Approval is idempotent.
+  - Drafts never leave the app until approved. Homeowner drafts post to the client portal thread; nothing is emailed to vendors.
+- **Audit.**
+  - Every recommendation change is recorded with its actor or automation policy in `intelligence_recommendation_events`.
+  - Every agent execution is recorded in `agent_runs`: provider, model, latency, tokens, validated output and issues. Prompts and model reasoning are never stored.
+- **Limits.**
+  - Per-route rate limits; two concurrent agent runs per organization; a daily run cap per organization (`dailyAgentRunLimit`).
+  - A 90 s timeout with one retry, for transient failures only.
+  - The CrewAI service bounds its own concurrency.
+- **Retention.** Agent runs are kept for 90 days; closed recommendations for 365 days; evaluations for 90 days (the latest per project is always kept).
+- **Third parties.** CrewAI telemetry and tracing are disabled in the service, so project data goes only to the configured model provider.
+
 ## Realtime
 
 `GET /realtime?token=…` authenticates with the access token. Events are filtered per connection by organization, project access (re-checked when membership may have changed) and internal/external audience. The events are change hints only: clients re-fetch through the authorized REST and sync endpoints.

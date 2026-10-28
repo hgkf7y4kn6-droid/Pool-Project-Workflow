@@ -20,6 +20,8 @@ const SECTIONS: { title: string; items: Entry[] }[] = [
     title: "Work",
     items: [
       { title: "Search", subtitle: "Projects, clients, tasks, documents", icon: "search", href: "/search" },
+      { title: "Alert center", subtitle: "Risks, blockers and next actions", icon: "pulse-outline", href: "/alerts", permission: "intelligence:read" },
+      { title: "Operations", subtitle: "Every active project at a glance", icon: "speedometer-outline", href: "/portfolio", permission: "intelligence:read" },
       { title: "Approvals", subtitle: "Change orders and sign-offs", icon: "create-outline", href: "/approvals", permission: "approval:read" },
       { title: "Documents", subtitle: "Plans, permits, contracts, manuals", icon: "document-text-outline", href: "/documents", permission: "document:read" },
       { title: "Clients", subtitle: "Homeowners and properties", icon: "people-outline", href: "/clients", permission: "client:read", internalOnly: true },
@@ -35,6 +37,7 @@ const SECTIONS: { title: string; items: Entry[] }[] = [
       { title: "Vendors & subcontractors", subtitle: "Suppliers, subs, rentals", icon: "storefront-outline", href: "/vendors", permission: "vendor:read" },
       { title: "Materials catalog", subtitle: "Items and unit costs", icon: "cube-outline", href: "/materials", permission: "material:read" },
       { title: "Integrations", subtitle: "Design platforms, weather, storage", icon: "extension-puzzle-outline", href: "/integrations", permission: "integration:manage" },
+      { title: "Project intelligence", subtitle: "Alert thresholds and AI usage", icon: "options-outline", href: "/intelligence-settings", permission: "intelligence:configure" },
     ],
   },
   {

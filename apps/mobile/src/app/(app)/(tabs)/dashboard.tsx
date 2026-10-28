@@ -23,6 +23,8 @@ import {
   Text,
 } from "@/components/ui";
 import { useActivity, useApi, usePhotos, useProjects, useStages, useTasks } from "@/features/data";
+import { useRecommendations } from "@/features/intelligence";
+import { RecommendationRow } from "@/components/intelligence";
 import { useLayout, useTheme } from "@/hooks/use-theme";
 import { date, money, shortDate } from "@/lib/format";
 import { useSession, useUser } from "@/providers/session";
@@ -63,6 +65,8 @@ function CompanyDashboard() {
   const photos = usePhotos({ limit: 9 });
   const remote = useApi<DashboardResponse>(["dashboard"], "/dashboard");
   const d = remote.data;
+  const intelligence = can("intelligence:read");
+  const urgent = useRecommendations({ status: "active", severity: "critical,high", limit: 5 }, intelligence);
   const todayProjects = new Set((today.data ?? []).map((t) => t.projectId)).size;
   const blocked = (today.data ?? []).filter((t) => t.status === "blocked").length;
 
@@ -103,7 +107,11 @@ function CompanyDashboard() {
         ) : (
           <QuickAction icon="cloud-upload-outline" label="Sync & offline" hint="What's saved on this device" onPress={() => router.push("/offline-queue")} />
         )}
-        <QuickAction icon="search-outline" label="Search" hint="Jobs, tasks, clients" onPress={() => router.push("/search")} />
+        {intelligence ? (
+          <QuickAction icon="pulse-outline" label="Alerts" hint={urgent.data?.length ? `${urgent.data.length} urgent` : "Risks & next actions"} tone={urgent.data?.length ? "accent" : "primary"} onPress={() => router.push("/alerts")} />
+        ) : (
+          <QuickAction icon="search-outline" label="Search" hint="Jobs, tasks, clients" onPress={() => router.push("/search")} />
+        )}
       </Reveal>
 
       {d?.weatherAlerts.length ? (
@@ -122,6 +130,17 @@ function CompanyDashboard() {
             ))}
           </View>
         </>
+      ) : null}
+
+      {intelligence && urgent.data?.length ? (
+        <Reveal index={2}>
+          <SectionHeader kicker="Prevent delays" title="Needs attention" onPress={() => router.push("/portfolio")} actionLabel="Operations" />
+          <Card className="py-1">
+            {urgent.data.map((r) => (
+              <RecommendationRow key={r.id} rec={r} showProject />
+            ))}
+          </Card>
+        </Reveal>
       ) : null}
 
       <Reveal index={2}>

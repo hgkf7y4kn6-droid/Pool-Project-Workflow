@@ -63,11 +63,11 @@ export function buildFacts(snap: IntelligenceSnapshot, audience: CommunicationAu
     add("project", p.id, `Project ${p.name}${p.projectedCompletionDate ? `, projected completion ${p.projectedCompletionDate}` : p.plannedCompletionDate ? `, planned completion ${p.plannedCompletionDate}` : ""}.`);
     if (p.plannedCompletionDate && p.projectedCompletionDate && p.projectedCompletionDate !== p.plannedCompletionDate) add("project", p.id, `Completion was planned for ${p.plannedCompletionDate} and is now projected for ${p.projectedCompletionDate}.`);
     const recent = stages.filter((s) => s.status === "completed" && s.actualEndDate && s.actualEndDate >= addDays(snap.today, -14));
-    for (const s of recent) add("stage", s.id, `${s.name} was completed on ${s.actualEndDate}.`);
-    for (const s of stages.filter((x) => x.status === "in_progress")) add("stage", s.id, `${s.name} is in progress.`);
+    for (const s of recent) add("stage", s.id, `${s.name} — completed ${s.actualEndDate}.`);
+    for (const s of stages.filter((x) => x.status === "in_progress")) add("stage", s.id, `${s.name} — in progress.`);
     for (const s of stages.filter((x) => x.status === "not_started").slice(0, 2)) {
       const start = stageStart(s);
-      add("stage", s.id, start ? `${s.name} is planned to start ${start}.` : `${s.name} is next; its start date isn't set yet.`);
+      add("stage", s.id, start ? `${s.name} — planned to start ${start}.` : `${s.name} — next; start date not set yet.`);
     }
     for (const a of snap.approvals.filter((x) => x.status === "pending")) add("approval", a.id, `Waiting on your decision: ${a.title}${a.dueDate ? ` (requested by ${a.dueDate})` : ""}.`);
     for (const c of snap.changeOrders.filter((x) => x.status === "client_review")) add("change_order", c.id, `Change order #${c.number} "${c.title}" is ready for your review in the client portal${c.scheduleImpactDays ? ` and would add ${c.scheduleImpactDays} days to the schedule` : ""}.`);

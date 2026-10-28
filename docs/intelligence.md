@@ -182,3 +182,39 @@ The API's `AgentProvider` has three implementations:
 3. **Rollback.**
    - Set `INTELLIGENCE_ENABLED=false` to stop triggers and scans. The existing features don't depend on any intelligence table.
    - The migration is additive, so rolling back the API image is safe.
+
+## 11. Implementation map
+
+| Concern | Where |
+|---|---|
+| Shared vocabulary (agents, severities, statuses, settings, DTOs) | `packages/types/src/intelligence.ts` |
+| Rules, readiness, consolidation, briefing, output validation | `packages/core/src/intelligence/` (`rules.ts`, `readiness.ts`, `evaluate.ts`, `validate.ts`, `context.ts`, `settings.ts`) |
+| Tables and migration | `packages/database/src/schema.ts`, `migrations/0003_project_intelligence.sql` |
+| Snapshot loader (authoritative records → engine input) | `services/api/src/services/intelligence/snapshot.ts` |
+| Evaluation and lifecycle (dedupe, suppression, auto-resolve, notifications) | `services/api/src/services/intelligence/evaluator.ts` |
+| Recommendation actions and approval-gated execution | `services/api/src/services/intelligence/recommendations.ts` |
+| Communication drafts | `services/api/src/services/intelligence/drafts.ts` |
+| Briefing, Q&A, portfolio, settings, runs, scans | `services/api/src/services/intelligence/service.ts`, `trigger.ts`, `scheduler.ts` |
+| Agent contract, CrewAI client, Anthropic fallback | `services/api/src/adapters/agents/` |
+| Agent orchestration (idempotency, limits, validation, cost) | `services/api/src/services/intelligence/agents.ts` |
+| Routes | `services/api/src/routes/intelligence.ts` |
+| CrewAI service | `services/crew/` |
+| App | `apps/mobile/src/components/intelligence.tsx`, `src/features/intelligence.ts`; screens `projects/[id]/intelligence`, `projects/[id]/assistant`, `projects/[id]/communications`, `communications/[id]`, `alerts/`, `portfolio`, `intelligence-settings` |
+
+**Event flow.**
+1. A write calls `recordActivity` (or a material update).
+2. That marks the project changed on the request context.
+3. After the response, so after commit, an `intelligence.evaluate` job is enqueued with a debounce job id.
+4. The job evaluates the rules and reconciles the recommendations.
+5. Newly opened or worsened items at or above `notifyMinSeverity` notify the owner, the PM and (for critical) admins, through the existing notifications pipeline with a dedupe key.
+
+## 12. Known limitations
+
+- **Permits** have no entity of their own. Issuance is read from the permits stage or its "permit issued" checklist item. A permit document only supports it, because it may be the application.
+- **Homeowner selections** are modeled as approvals. **Subcontractor availability** is inferred only from double-booking: there's no availability calendar.
+- **Weather risk** reuses the weather scan's alerts. Forecasts beyond about 10 days are reported as unknown.
+- **Historical data** is used only for stage durations (median and 80th percentile, at least 5 samples). Delay probabilities are deliberately not produced until enough outcome history exists to calibrate them.
+- **Vendor messages:** the app never emails suppliers or subcontractors. Approved vendor drafts are shared by the user.
+- **Proposed actions:** the rules currently propose `draft_message` and `request_approval`. `create_task` is supported end to end for agents and future rules, but no rule emits it yet.
+- **Concurrency:** the cap of two concurrent agent runs per organization is per API instance. The daily cap is global (it's enforced in the database).
+- **Not yet verified against a real model.** The CrewAI service is covered by scripted-model tests and a live contract test with the API, but it hasn't run against a real Anthropic model in this environment: that needs an API key and network access. Deploy it and set the provider before relying on narratives.

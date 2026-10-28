@@ -1,6 +1,11 @@
 import type {
   ChangeOrderStatus,
+  CommunicationStatus,
+  FactorState,
   InspectionResult,
+  ReadinessLabel,
+  RecommendationStatus,
+  Severity,
   PaymentStatus,
   ProjectStatus,
   StageStatus,
@@ -193,6 +198,47 @@ export const paymentStatusTone: Record<PaymentStatus, Tone> = {
   paid: "success",
   overdue: "danger",
   void: "neutral",
+};
+
+export const severityTone: Record<Severity, Tone> = {
+  critical: "danger",
+  high: "warning",
+  medium: "info",
+  low: "neutral",
+};
+
+export const readinessTone: Record<ReadinessLabel, Tone> = {
+  ready: "success",
+  at_risk: "warning",
+  blocked: "danger",
+  no_upcoming_milestone: "neutral",
+};
+
+/** `unknown` is missing data, deliberately neutral rather than alarming. */
+export const factorStateTone: Record<FactorState, Tone> = {
+  ready: "success",
+  at_risk: "warning",
+  blocked: "danger",
+  unknown: "neutral",
+};
+
+export const recommendationStatusTone: Record<RecommendationStatus, Tone> = {
+  open: "primary",
+  acknowledged: "info",
+  in_progress: "info",
+  snoozed: "neutral",
+  escalated: "danger",
+  resolved: "success",
+  dismissed: "neutral",
+  superseded: "neutral",
+  expired: "neutral",
+};
+
+export const communicationStatusTone: Record<CommunicationStatus, Tone> = {
+  draft: "neutral",
+  approved: "success",
+  rejected: "danger",
+  posted: "success",
 };
 
 /** Foreground/background token pair for a tone. */

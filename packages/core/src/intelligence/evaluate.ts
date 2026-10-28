@@ -106,7 +106,8 @@ export function buildBriefing(ctx: AnalysisContext, findings: Finding[], readine
       : findings.length
         ? `${findings.length} open item${findings.length === 1 ? "" : "s"}`
         : "Nothing needs attention";
-  const status = `${p.status.replace(/_/g, " ")}; ${ctx.snap.tasks.filter((t) => t.status === "done").length} of ${ctx.snap.tasks.filter((t) => t.status !== "cancelled").length} tasks done${p.projectedCompletionDate ? `; projected completion ${p.projectedCompletionDate}` : ""}.`;
+  const phase = p.status.replace(/_/g, " ");
+  const status = `${phase.charAt(0).toUpperCase()}${phase.slice(1)}; ${ctx.snap.tasks.filter((t) => t.status === "done").length} of ${ctx.snap.tasks.filter((t) => t.status !== "cancelled").length} tasks done${p.projectedCompletionDate ? `; projected completion ${p.projectedCompletionDate}` : ""}.`;
 
   const readinessByStage = new Map<string, ReadinessLabel>();
   if (next) readinessByStage.set(next.stageId, next.label);

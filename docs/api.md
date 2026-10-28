@@ -142,6 +142,17 @@ Capabilities are checked per role inside each service (matrix in [security.md](s
 | PATCH | `/change-orders/:id` | `updateChangeOrderSchema` |
 | POST | `/change-orders/:id/transition` | `changeOrderTransitionSchema` |
 
+### `/communications`
+
+Drafts written from verified project facts. Nothing leaves the app until someone with `intelligence:approve` approves it; approving a homeowner draft posts it to the client message thread. See [intelligence.md](intelligence.md).
+
+| Method | Path | Validation schema |
+|---|---|---|
+| GET | `/communications/:id` |  |
+| PATCH | `/communications/:id` | `communicationDraftUpdateSchema` (optimistic `version`) |
+| POST | `/communications/:id/approve` | `communicationApproveSchema` |
+| POST | `/communications/:id/reject` | `communicationRejectSchema` |
+
 ### `/checklist-items`
 
 | Method | Path | Validation schema |
@@ -212,6 +223,15 @@ Capabilities are checked per role inside each service (matrix in [security.md](s
 | GET | `/inspections/:id` |  |
 | PATCH | `/inspections/:id` | `updateInspectionSchema` |
 
+### `/intelligence`
+
+| Method | Path | Validation schema |
+|---|---|---|
+| GET | `/intelligence/portfolio` |  |
+| GET | `/intelligence/runs` | query: `projectId?`, `cursor?`, `limit` (`intelligence:configure`) |
+| GET | `/intelligence/settings` |  |
+| PATCH | `/intelligence/settings` | `intelligenceSettingsSchema` (`intelligence:configure`) |
+
 ### `/integrations`
 
 | Method | Path | Validation schema |
@@ -268,6 +288,11 @@ Capabilities are checked per role inside each service (matrix in [security.md](s
 | PATCH | `/projects/:projectId` | `updateProjectSchema` |
 | GET | `/projects/:projectId/activity` |  |
 | POST | `/projects/:projectId/ai/ask` | `aiAskSchema` |
+| GET | `/projects/:projectId/communications` |  |
+| POST | `/projects/:projectId/communications` | `communicationDraftCreateSchema` |
+| GET | `/projects/:projectId/intelligence` |  |
+| POST | `/projects/:projectId/intelligence/analyze` |  |
+| POST | `/projects/:projectId/intelligence/ask` | `intelligenceAskSchema` |
 | POST | `/projects/:projectId/approvals` | `approvalRequestSchema` |
 | POST | `/projects/:projectId/archive` |  |
 | GET | `/projects/:projectId/baselines` |  |
@@ -335,6 +360,23 @@ Capabilities are checked per role inside each service (matrix in [security.md](s
 | Method | Path | Validation schema |
 |---|---|---|
 | GET | `/realtime` |  |
+
+### `/recommendations`
+
+Evidence-backed findings from the intelligence rules, filtered to projects the caller can access. List query: `recommendationListQuery` (`projectId`, `status` = `active` or a comma list, `severity`, `agent`, `assigneeId` = id or `me`, `cursor`, `limit`).
+
+| Method | Path | Validation schema |
+|---|---|---|
+| GET | `/recommendations` | `recommendationListQuery` |
+| GET | `/recommendations/:id` | (includes `history`) |
+| POST | `/recommendations/:id/acknowledge` | `recommendationNoteSchema` |
+| POST | `/recommendations/:id/start` | `recommendationNoteSchema` |
+| POST | `/recommendations/:id/assign` | `recommendationAssignSchema` |
+| POST | `/recommendations/:id/snooze` | `recommendationSnoozeSchema` (critical: max 1 day) |
+| POST | `/recommendations/:id/dismiss` | `recommendationDismissSchema` (note required for critical/high and "other") |
+| POST | `/recommendations/:id/resolve` | `recommendationNoteSchema` |
+| POST | `/recommendations/:id/reopen` | `recommendationNoteSchema` |
+| POST | `/recommendations/:id/approve` | runs the proposed action as the caller (`intelligence:approve`); idempotent |
 
 ### `/reports`
 

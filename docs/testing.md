@@ -2,13 +2,15 @@
 
 | Layer | Tool | Where | Needs |
 |---|---|---|---|
-| Unit: domain logic | Vitest | `packages/core/test` (scheduling/CPM, permissions, budget, change orders, checklist rule, weather) | nothing |
+| Unit: domain logic | Vitest | `packages/core/test` (scheduling/CPM, permissions, budget, change orders, checklist rule, weather, and `intelligence.test.ts`: readiness, every rule, severity, consolidation, determinism, agent-output validation, across scenarios 1–11 from docs/intelligence.md) | nothing |
 | Unit: sync engine | Vitest | `packages/sync/test` (queue, coalescing, backoff, three-way merge, conflicts, access purge) against in-memory stores | nothing |
 | Unit: shared libs | Vitest | `packages/validation`, `packages/api-client` (refresh single-flight, error mapping), `packages/ui` (WCAG contrast of every tone), `apps/mobile/test` (signature PNG encoder) | nothing |
 | Database | Vitest | `packages/database/test`: migrations apply cleanly, the seed runs, and a tenant can be deleted and re-seeded | Postgres |
 | API integration | Vitest + `fastify.inject` | `services/api/test`: auth (lockout, refresh rotation and reuse detection, MFA, magic links), access control per role, client redaction, workflows (project → schedule → tasks → change order → payment, inspections → corrective tasks), and sync push/pull/conflicts/idempotency | Postgres |
+| Intelligence integration | Vitest | `services/api/test/intelligence.test.ts`: authorization and tenancy, event triggers and auto-resolve, dismissal suppression, idempotent notifications and approvals, drafts posted once, and a scripted agent provider (invalid citations, disallowed actions, contradictions, failures, cached reruns) | Postgres |
+| CrewAI service | pytest | `services/crew/tests`: auth, compact and full crews, prompt-injection framing, audience scoping, invalid output, failures, timeouts and limits, using a scripted `BaseLLM` with no network. `services/api/test/crew-contract.test.ts` runs the API client against the real service (`CREW_CONTRACT_URL`). | Python 3.13 |
 | End-to-end (web) | Playwright | `e2e/tests`: drives the real Expo web build against the real API and a fresh seeded database | Postgres, Chromium |
-| End-to-end (native) | Maestro | `e2e/maestro/flows`: login, offline checklist + reconnect, camera photo | Simulator/emulator with a dev or preview build |
+| End-to-end (native) | Maestro | `e2e/maestro/flows`: login, offline checklist + reconnect, camera photo, project intelligence | Simulator/emulator with a dev or preview build |
 
 ## Running
 

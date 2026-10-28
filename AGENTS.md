@@ -8,6 +8,7 @@ Monorepo (npm workspaces + Turborepo). Read `README.md` and `docs/architecture.m
   - Request shapes go in `packages/validation`; use `patchOf()` for PATCH schemas.
   - Shared constants go in `packages/config`.
   - The API keeps HTTP in `routes/` and logic in `services/`. Every external system sits behind an adapter in `services/api/src/adapters`.
+  - Intelligence rules, severity and readiness are deterministic and live in `packages/core/src/intelligence`. Agents (`services/crew`, `adapters/agents`) only write language over them, get no tools, and their output is re-validated by the API. See `docs/intelligence.md`.
 - **Authorization**:
   - Every service call checks `requirePermission` (capability) and `loadProject` / `projectAccessCondition` (row level).
   - Return 404 for inaccessible rows.

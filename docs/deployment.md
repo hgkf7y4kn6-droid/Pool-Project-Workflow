@@ -170,6 +170,38 @@ openssl rand -base64 32   # DATA_ENCRYPTION_KEY (exactly 32 bytes)
 
 Rotating `JWT_SECRET` invalidates outstanding access tokens only. Refresh tokens are opaque and stored hashed in the database, so apps transparently get new access tokens and nobody is signed out. To force everyone out, revoke the `sessions` rows. Rotating `DATA_ENCRYPTION_KEY` requires re-encrypting MFA secrets first.
 
+## Project intelligence
+
+Intelligence ships with the API and needs no extra infrastructure; [intelligence.md](intelligence.md) covers the design.
+
+**What runs, and where:**
+- **Event-driven evaluations** run on every write, after commit and debounced (`INTELLIGENCE_DEBOUNCE_MS`).
+- **Scheduled scans:**
+  - The daily scan runs at 12:00 UTC.
+  - Escalation runs hourly at :30.
+  - Weekly retention runs on Mondays.
+- **Who runs them:** the worker schedules all three when Redis is configured. Without Redis (as on staging), the API runs them in-process (`INTELLIGENCE_INPROCESS_SCHEDULER`), guarded by a Postgres advisory lock.
+- **Kill switch:** `INTELLIGENCE_ENABLED=false` stops triggers and scans. The existing features don't depend on any intelligence table.
+
+**Agent providers (optional).**
+
+| `INTELLIGENCE_AGENT_PROVIDER` | Needs | Notes |
+|---|---|---|
+| `none` (default without the settings below) | — | Rules, readiness, alerts, Q&A from records, and template drafts |
+| `anthropic` | `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` | One validated call per request through the existing AI adapter |
+| `crewai` | `CREW_SERVICE_URL`, `CREW_SERVICE_TOKEN` | Runs the six-agent CrewAI service; see [services/crew/README.md](../services/crew/README.md) |
+
+**Deploying the CrewAI service (example: Render).**
+1. Create a Docker web service from `services/crew`, using Docker context and Dockerfile both under `services/crew`.
+2. Set `CREW_SERVICE_TOKEN` (`openssl rand -hex 24`) and `ANTHROPIC_API_KEY`. Optionally set `CREW_LLM_MODEL`.
+3. Set the health check path to `/health`.
+4. On `pool-pm-api`, set `CREW_SERVICE_URL=https://<service>.onrender.com` and the same `CREW_SERVICE_TOKEN`. The API selects `crewai` automatically.
+5. A private service is preferable where the plan allows it. The bearer token protects a public one.
+
+**Rollback.**
+- The migration `0003_project_intelligence` is additive (new tables, new nullable `material_usage` columns, new enum values), so rolling back the API image is safe.
+- To turn off agents only, unset `CREW_SERVICE_URL` or set `INTELLIGENCE_AGENT_PROVIDER=none`.
+
 ## Observability
 
 - **Logs**: pino JSON to stdout with a request id on every line (also returned in error bodies as `requestId`). Ship them to your log platform. Auth headers are never logged.

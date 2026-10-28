@@ -3,6 +3,7 @@ import { View } from "react-native";
 import type { BudgetSummary, Permission, ScheduleSummary } from "@pool/core";
 import { PROJECT_STATUS_LABELS, PROJECT_TYPE_LABELS } from "@pool/types";
 import { Icon, type IconName } from "@/components/icon";
+import { BriefingCard } from "@/components/intelligence";
 import {
   Card,
   ErrorState,
@@ -21,6 +22,7 @@ import {
   Text,
 } from "@/components/ui";
 import { useApi, useProject, useStages } from "@/features/data";
+import { useProjectIntelligence } from "@/features/intelligence";
 import { useLayout, useTheme } from "@/hooks/use-theme";
 import { date, money, shortDate } from "@/lib/format";
 import { kv, KV_KEYS } from "@/lib/kv";
@@ -52,7 +54,9 @@ const SECTIONS: { key: string; title: string; icon: IconName; permission?: Permi
   { key: "messages", title: "Messages", icon: "chatbubbles-outline", permission: "message:read" },
   { key: "property", title: "Property & client", icon: "home-outline", permission: "property:read" },
   { key: "approvals", title: "Approvals", icon: "create-outline", permission: "approval:read" },
-  { key: "assistant", title: "AI assistant", icon: "sparkles-outline", permission: "ai:use" },
+  { key: "intelligence", title: "Intelligence", icon: "pulse-outline", permission: "intelligence:read" },
+  { key: "communications", title: "Messages to send", icon: "mail-outline", permission: "intelligence:read" },
+  { key: "assistant", title: "Ask AI", icon: "sparkles-outline", permission: "ai:use" },
   { key: "activity", title: "Activity", icon: "pulse-outline", permission: "activity:read" },
 ];
 
@@ -65,6 +69,7 @@ export default function ProjectDashboardScreen() {
   const project = useProject(id);
   const stages = useStages(id);
   const remote = useApi<ProjectDashboard>(["project-dashboard", id], `/projects/${id}/dashboard`);
+  const intel = useProjectIntelligence(id, can("intelligence:read"));
   kv.set(KV_KEYS.lastProjectId, id);
 
   if (project.loading) return <Screen title="Project" back><LoadingState /></Screen>;
@@ -88,6 +93,7 @@ export default function ProjectDashboardScreen() {
       onRefresh={() => {
         void syncNow();
         void remote.refetch();
+        void intel.refetch();
       }}
       refreshing={remote.isFetching}
     >
@@ -119,8 +125,14 @@ export default function ProjectDashboardScreen() {
         {can("message:read") ? <QuickAction icon="chatbubbles-outline" label="Messages" hint="Team & client" onPress={() => go("messages")} /> : null}
       </Reveal>
 
+      {intel.data ? (
+        <Reveal index={2} className="mt-3">
+          <BriefingCard briefing={intel.data.briefing} projectId={p.id} readiness={intel.data.readiness.nextMilestone} compact />
+        </Reveal>
+      ) : null}
+
       {f && can("budget:read") ? (
-        <Reveal index={2}>
+        <Reveal index={3}>
           <SectionHeader kicker="Money" title="Budget" onPress={() => go("budget")} actionLabel="Details" />
           <View className="flex-row flex-wrap gap-3">
             <Stat label="Contract" value={money(f.revenueCents)} hint={f.changeOrderRevenueCents ? `incl. ${money(f.changeOrderRevenueCents)} COs` : undefined} />

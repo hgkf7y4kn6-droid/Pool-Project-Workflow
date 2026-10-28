@@ -39,8 +39,9 @@ function Inbox() {
             subtitle={`${n.body} · ${fromNow(n.createdAt)}`}
             onPress={() => {
               if (!n.readAt) read.mutate([n.id]);
-              const data = n.data as { taskId?: string; changeOrderId?: string; projectId?: string };
-              if (data.taskId) router.push(`/tasks/${data.taskId}`);
+              const data = n.data as { taskId?: string; changeOrderId?: string; projectId?: string; recommendationId?: string };
+              if (data.recommendationId) router.push(`/alerts/${data.recommendationId}`);
+              else if (data.taskId) router.push(`/tasks/${data.taskId}`);
               else if (data.changeOrderId) router.push(`/change-orders/${data.changeOrderId}`);
               else if (n.projectId) router.push(`/projects/${n.projectId}`);
             }}

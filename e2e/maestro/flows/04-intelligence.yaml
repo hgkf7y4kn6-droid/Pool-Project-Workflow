@@ -1,0 +1,18 @@
+appId: com.poolpm.app
+name: Project manager reviews project intelligence and acknowledges an alert
+---
+- runFlow: { file: _sign-in.yaml, env: { EMAIL: pm@bluelagoon.test } }
+- tapOn: "Whitfield Backyard Oasis"
+- assertVisible: "Project briefing"
+- tapOn: "Open project intelligence"
+- assertVisible: "Intelligence"
+- tapOn:
+    text: "Readiness.*"
+- assertVisible: "Prerequisite work"
+- tapOn:
+    text: "Alerts \\(.*"
+- tapOn:
+    text: "(Critical|High|Medium|Low): .*"
+    index: 0
+- assertVisible: "What we see"
+- assertVisible: "Evidence from project records"
