@@ -50,7 +50,7 @@ import {
 import type { Ctx } from "../context";
 import { AppError } from "../lib/errors";
 import { parse } from "../lib/validate";
-import { accessibleProjectIds, hasPermission } from "./access";
+import { accessibleProjectIds, hasPermission, loadProject, requirePermission } from "./access";
 import { createExpense, createLaborEntry, deleteExpense, deleteLaborEntry } from "./budget";
 import { createInspection, updateInspection } from "./inspections";
 import { measurementOut, photoOut, propertyOut, strip } from "./mappers";
@@ -80,6 +80,24 @@ async function currentRow(tx: DbOrTx, table: typeof tasks | typeof checklistItem
   return row as (Record<string, unknown> & { version: number; deletedAt: string | null }) | undefined;
 }
 
+/** 404 unless the caller could read this row through the normal REST endpoints. */
+async function authorizeRead(
+  ctx: Ctx,
+  tx: DbOrTx,
+  table: typeof tasks | typeof checklistItems | typeof measurements | typeof inspections | typeof photos,
+  row: Record<string, unknown>,
+): Promise<void> {
+  if (table === tasks) {
+    await loadTask(ctx, String(row.id), tx);
+  } else if (table === checklistItems) {
+    await loadTask(ctx, String(row.taskId), tx);
+  } else {
+    await loadProject(ctx, String(row.projectId), tx);
+    await requirePermission(ctx, table === measurements ? "measurement:read" : table === inspections ? "inspection:read" : "photo:read");
+    if (ctx.auth.role === "client") throw new AppError("not_found", "Record not found");
+  }
+}
+
 class SyncConflict extends Error {
   constructor(
     readonly serverVersion: number,
@@ -92,12 +110,15 @@ class SyncConflict extends Error {
 
 /** Version check + merge for updates. Returns the fields that should be applied. */
 async function mergeUpdate(
+  ctx: Ctx,
   tx: DbOrTx,
   table: typeof tasks | typeof checklistItems | typeof measurements | typeof inspections | typeof photos,
   op: SyncPushOperation,
 ): Promise<Record<string, unknown>> {
   const row = await currentRow(tx, table, op.entityId);
   if (!row || row.deletedAt) throw new AppError("not_found", "This record was deleted on the server");
+  // A conflict response carries the server's copy of the row, so the caller must be allowed to read it first.
+  await authorizeRead(ctx, tx, table, row);
   if (op.baseVersion === null || op.baseVersion === row.version || op.force) return op.payload;
   const { merged, conflictingFields } = threeWayMerge(op.payload, op.baseValues, row);
   if (conflictingFields.length) {
@@ -119,7 +140,7 @@ const HANDLERS: Record<string, Handler> = {
     return { version: task.version, record: task };
   },
   "task:update": async (ctx, op, tx) => {
-    const fields = await mergeUpdate(tx, tasks, op);
+    const fields = await mergeUpdate(ctx, tx, tasks, op);
     const task = await loadTask(ctx, op.entityId, tx);
     const input = parse(updateTaskSchema.extend({ override: z.boolean().optional(), overrideReason: z.string().max(1000).nullish() }), fields);
     const updated = await applyTaskUpdate(ctx, task, input, tx);
@@ -131,7 +152,7 @@ const HANDLERS: Record<string, Handler> = {
     return { version: 0, record: { id: op.entityId, deleted: true } };
   },
   "checklist_item:update": async (ctx, op, tx) => {
-    const fields = await mergeUpdate(tx, checklistItems, op);
+    const fields = await mergeUpdate(ctx, tx, checklistItems, op);
     if (typeof fields.isChecked !== "boolean") throw new AppError("bad_request", "Only isChecked can be changed offline");
     const row = await applyChecklistToggle(ctx, op.entityId, fields.isChecked, tx);
     return { version: row.version, record: strip(row) };
@@ -166,7 +187,7 @@ const HANDLERS: Record<string, Handler> = {
     return { version: row.version, record: row };
   },
   "measurement:update": async (ctx, op, tx) => {
-    const fields = await mergeUpdate(tx, measurements, op);
+    const fields = await mergeUpdate(ctx, tx, measurements, op);
     const row = await updateMeasurement(ctx, op.entityId, parse(updateMeasurementSchema, fields), tx);
     return { version: row.version, record: row };
   },
@@ -181,7 +202,7 @@ const HANDLERS: Record<string, Handler> = {
     return { version: photo.version, record: { ...photo, upload } };
   },
   "photo:update": async (ctx, op, tx) => {
-    const fields = await mergeUpdate(tx, photos, op);
+    const fields = await mergeUpdate(ctx, tx, photos, op);
     const row = await updatePhoto(ctx, op.entityId, parse(photoUpdateSchema, fields));
     return { version: row.version, record: row };
   },
@@ -195,7 +216,7 @@ const HANDLERS: Record<string, Handler> = {
     return { version: row.version, record: row };
   },
   "inspection:update": async (ctx, op, tx) => {
-    const fields = await mergeUpdate(tx, inspections, op);
+    const fields = await mergeUpdate(ctx, tx, inspections, op);
     const row = await updateInspection(ctx, op.entityId, parse(updateInspectionSchema, fields), tx);
     return { version: row.version, record: row };
   },

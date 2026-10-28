@@ -26,7 +26,10 @@ export function authRoutes(app: FastifyInstance, deps: Deps) {
     deviceName: req.headers["x-device-name"] ? String(req.headers["x-device-name"]) : undefined,
   });
   // Stricter rate limit on credential endpoints.
-  const strict = { config: { rateLimit: { max: deps.env.AUTH_RATE_LIMIT_MAX, timeWindow: "1 minute" } } };
+  // Keyed by IP only: the global key trusts the Authorization header, which callers on these routes can vary freely.
+  const strict = {
+    config: { rateLimit: { max: deps.env.AUTH_RATE_LIMIT_MAX, timeWindow: "1 minute", keyGenerator: (req: { ip: string }) => `auth-ip:${req.ip}` } },
+  };
 
   app.post("/auth/register", strict, async (req, reply) => reply.code(201).send(ok(await auth.register(deps, parse(registerSchema, req.body), meta(req)))));
   app.post("/auth/login", strict, async (req) => ok(await auth.login(deps, parse(loginSchema, req.body), meta(req))));

@@ -146,7 +146,14 @@ export async function transitionChangeOrder(ctx: Ctx, id: string, input: ChangeO
       set.signatureName = null;
       set.signatureDataUrl = null;
     }
-    const [co] = await tx.update(changeOrders).set(set).where(eq(changeOrders.id, id)).returning();
+    // Compare-and-set on the status we validated: a concurrent request that already moved this
+    // change order must not run the side effects (payment, approval, task) a second time.
+    const [co] = await tx
+      .update(changeOrders)
+      .set(set)
+      .where(and(eq(changeOrders.id, id), eq(changeOrders.status, row.status)))
+      .returning();
+    if (!co) throw new AppError("conflict", "This change order was just updated by someone else. Refresh and try again.");
     const project = await loadProject(ctx, row.projectId, tx);
     const label = `Change Order #${row.number}`;
 
