@@ -50,7 +50,7 @@ The web/admin app is a static Expo web export, defined in `render.yaml`.
 | `JWT_SECRET` | Render **Generate** |
 | `DATA_ENCRYPTION_KEY` | Render **Generate**, which produces a 32-byte base64 value |
 
-Until the `pool-api` subdomain is live, `pool-pm-web` builds with `EXPO_PUBLIC_API_URL=https://pool-pm-api.onrender.com`; switch it back once the domain verifies.
+`pool-pm-web` builds with `EXPO_PUBLIC_API_URL=https://pool-api.richesdigitalventures.com` (Cloudflare proxied CNAME → `pool-pm-api.onrender.com`, verified). If that domain is ever unavailable, `https://pool-pm-api.onrender.com` works as a fallback; the API's `CORS_ORIGINS` already allows both web origins.
 
 If the static site is served without the COOP/COEP headers, the app installs `public/coi-serviceworker.js` and reloads once to become cross-origin isolated, because the web SQLite worker needs it. The headers are still preferred.
 
