@@ -20,7 +20,7 @@ Every finding carries a verification label.
 | `turbo run test` (real Postgres 16) | 12/12 tasks pass. API: 63 passed, 4 skipped (the CrewAI contract test, which needs the Python service). Core 69, sync 12, config 9, validation 5, api-client 4, ui 6, database 3, mobile 1 |
 | `npm run build` for API and worker bundles | OK |
 | `npm audit --omit=dev` | 33 vulnerabilities: 6 high, 14 moderate, 13 low. Details in F-12 |
-| Playwright E2E, native builds, Docker images | **NOT RUN.** Nothing was built in this environment |
+| Playwright E2E (web export + API + Postgres) | 12 passed, 3 skipped (the screenshot tours). Run in the addendum, section 9. Native builds and Docker images still **NOT RUN** |
 | Deployed staging/production, Render, Supabase, Cloudflare, backups/PITR | **NOT ASSESSED.** No access |
 
 ### Stack and integrations found in the repo
@@ -50,8 +50,8 @@ Scores are bounded by what was verified. Confidence is stated per row.
 | 1 | Architecture and maintainability | 7 | Medium | Docs and about 25% of API code read. Typecheck, lint and 170 tests pass | Dead-code and bundle analysis not done. `services/sync.ts` authorization sat after data access (F-01) | Run knip or depcheck. Add an architecture rule: authorize before read |
 | 2 | Security and privacy | 5 | Medium | Auth, access, sync, documents and CO code read. Cross-tenant sweep run | F-01, F-03, F-04, F-05, F-06, F-12 | Ship fixes F-01 to F-03, decide on F-04, add `npm audit` to CI |
 | 3 | Pool workflows and reliability | 5 | Low-Med | Code and docs only. Schedule engine unit tests pass | No estimating, proposal or contract module. Duplicate payments on concurrent approval (F-02). No inspection-required gating verified | Confirm intended scope. Hand-trace the scheduling engine. Walk the field workflow |
-| 4 | UX/UI and accessibility | 5 | Low | Static only. 39 of 96 `.tsx` files carry accessibility attributes. E2E selects by role. No viewport, screen-reader or contrast run | Documented as not audited on device (`docs/roadmap.md`) | Run Playwright at six viewports with axe. Do a manual VoiceOver and TalkBack pass |
-| 5 | Performance and scalability | 4 | Low | No measurement | No metrics, no Sentry. ILIKE search. Synchronous report generation | Capture baselines (LCP/INP, p95 API). Run EXPLAIN on the top 10 queries |
+| 4 | UX/UI and accessibility | 6 | Medium (web only) | axe-core 4.10 on 28 routes x 6 viewports (320-1920 px), keyboard walk, screenshots. No screen reader, no native | 70 switches without `aria-checked`, Gantt bars unlabeled for assistive tech, one static page title, 19% of targets under 44 px | Fix F-15 to F-20, then a VoiceOver/TalkBack pass. See section 9 |
+| 5 | Performance and scalability | 5 | Medium-Low | Local measurements on a 1,006-project / 20k-task / 300k-activity copy, plus cold-load metrics. Not production hardware | 3.7 MB single JS bundle; `/dashboard` unbounded and 1.9 s p50 at 20 concurrent; no metrics, `SENTRY_DSN` declared but unused | Fix F-21, F-22. Re-measure on staging. See section 9 |
 | 6 | Integrations and financial integrity | 5 | Medium | CO and payment code read. Race reproduced | F-02, F-07. Money is integer cents (good). No payment processor to audit | Add idempotency and a unique index on payments |
 | 7 | Testing and release safety | 6 | Medium | CI config read, suite run | `render.yaml` deploys from a feature branch (F-08). No dependency scan in CI. E2E and RLS test results not re-run here | Fix F-08, add an audit job, run E2E in CI |
 | 8 | SaaS readiness | 4 | Medium | Code and docs | No billing or entitlements, no email verification, no data export or account closure, no org-wide MFA, global-unique email | Product decisions needed (see backlog) |
@@ -74,13 +74,13 @@ Scores are bounded by what was verified. Confidence is stated per row.
 **Needs restriction or validation**: change-order approval, the payments ledger, sync, and public registration.
 
 **Unverified areas**
-- The deployed environment.
-- Backups and PITR restore.
+- The deployed environment (staging and production settings are known only from the repo).
+- Supabase backups and PITR restore (only a local logical restore was run, section 9.4).
 - Real third-party provider behavior.
 - Cal (not found in the repo).
-- Browser accessibility and responsiveness.
-- Performance.
-- The Playwright E2E suite and native builds.
+- Screen-reader, native and zoom/text-spacing accessibility; client, subcontractor and worker screens.
+- Production-hardware performance and real-network load times.
+- Native builds and Docker images.
 - Scheduling-engine correctness beyond its unit tests.
 
 ## 2. Findings register
@@ -271,3 +271,147 @@ Full API suite after the changes: 66 passed, 4 skipped (the CrewAI contract test
 **Before pushing**, `CLAUDE.md` requires `npm run version:bump` for API changes. I did not run it, since you did not ask me to commit or push.
 
 **Rollback** is a plain revert of the three source files. No migrations or data changes were made.
+
+## 9. Addendum: accessibility, responsive layout, performance, backups, and environment configuration
+
+Run on 2026-10-28 against the web export of v0.0.8 (`e2e/.web`), the API on a local Postgres 16 with the demo seed, and headless Chromium. Results come from the `pm@bluelagoon.test` account only. Nothing was run against staging or production. New findings continue the numbering above; fixes were **not** made for any of them.
+
+### 9.1 Accessibility and responsive layout (web, VERIFIED unless noted)
+
+**Method.**
+- axe-core 4.10.2 with the `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa` rule sets.
+- 28 routes (sign-in plus 27 signed-in screens) at 320x640, 390x844, 768x1024, 1024x768, 1440x900 and 1920x1080.
+- A document-level horizontal-overflow check, an interactive-target size census, a keyboard Tab walk of the sign-in screen, and screenshots of four screens at 320 and 1440 px.
+- The existing Playwright suite (12 passed, 3 skipped) ran as the functional baseline.
+
+**What passed.**
+- No document-level horizontal overflow on any route at any of the six viewports.
+- On a phone the schedule's timeline scrolls inside its own container and has a Timeline/List toggle. This is a deliberate mobile alternative.
+- axe reported no color-contrast violations. axe cannot evaluate every element, so this is not a conformance claim.
+- Every route has an `h1`, and `lang="en"` is set.
+- Sign-in tab order is logical (email, password, Sign in, forgot password, create company) and every stop has a visible focus ring.
+- No console errors or page errors on any route.
+
+**Findings.**
+
+| ID | Pri | Finding and evidence | Fix | Acceptance |
+|---|---|---|---|---|
+| F-15 | P2 | **70 `role="switch"` nodes have no `aria-checked`** (axe: critical): 67 on `/roles`, 3 on a task screen. `roles.tsx` sets `accessibilityState={{ checked }}`, but the web build does not render it as `aria-checked`. Screen-reader users cannot tell which permissions are on. *Cause is inferred from the rendered DOM, not confirmed in react-native-web.* | Pass `aria-checked` (or the version-appropriate prop) on web for every switch, checkbox and radio. Check the other `accessibilityState` uses. | axe shows 0 `aria-required-attr` on both screens. A VoiceOver or NVDA pass announces "on/off" |
+| F-16 | P2 | **Gantt bars carry `aria-label` on role-less `div`s** (15 nodes on `/projects/{p}/schedule`, axe `aria-prohibited-attr`). The labels are ignored by assistive tech, so the timeline's dates are visual-only. | Give the bars a role (for example `img`) or hide the timeline from AT and make the List view the accessible equivalent. Verify the List view carries the same data. | 0 `aria-prohibited-attr`. List view has task, start, end and status for every row |
+| F-17 | P3 | **Sign-in password field uses `autoComplete="password"`**, an invalid token (axe `autocomplete-valid`, WCAG 1.3.5). | Use `current-password` (and `new-password` on register and reset). | axe clean on sign-in. Browser password managers fill it |
+| F-18 | P3 | Smaller axe items: 2 `progressbar`s without a name (`/projects`), a `ul` with non-`li` children (project detail), and scrollable regions that are not keyboard-focusable (`/team`, the timeline). | Name the progressbars, fix the list markup, add `tabIndex=0` and a label to scroll containers. | axe clean on those routes |
+| F-19 | P2 | **Every route has the same `<title>`, "Pool PM"** (WCAG 2.4.2). Whether route changes are announced to screen readers was not tested. | Set per-screen titles through the router. Move focus or announce on navigation. | Distinct titles. Manual screen-reader check |
+| F-20 | P2 | **Target size.** 91 of 475 interactive elements (19%) measure under 44x44 px, and 7 are under 24x24, for example the `Biometric unlock` switch on `/settings` at 40x20. WCAG 2.5.8 (AA) sets 24 px with spacing exceptions. Whether the exceptions apply was not checked. `docs/roadmap.md` claims 44 pt targets. | Enlarge the hit area (`hitSlop` or padding), then re-run the census. | 0 targets under 24 px. A documented policy for 24-44 px |
+
+**Not assessed.**
+- VoiceOver, TalkBack and NVDA.
+- Native iOS and Android layouts and Dynamic Type.
+- 200% zoom and text-spacing overrides.
+- Dialog focus trapping and form-error announcements.
+- Client, subcontractor, worker and designer screens.
+- Reduced-motion behavior: only 6 references exist in the source, which suggests partial support.
+- Layout clipping inside nested scroll containers. The overflow check only sees the document.
+- Desktop navigation: at 1440 px the app shows the phone-style floating tab bar over a centered column. This looks intentional and was not judged a defect.
+
+### 9.2 Performance (measured, local; treat absolute numbers as relative)
+
+**Web load.** Cold, cache-disabled load of the sign-in screen at 390x844.
+
+| Condition | LCP | CLS | Login form usable |
+|---|---|---|---|
+| No throttling, localhost | 0.73 s | 0.069 | 0.71 s |
+| 4x CPU slowdown, 1.6 Mbps, 150 ms RTT | 24.7 s | 0.001 | 24.8 s |
+
+- **The throttled row is pessimistic.** The test server does not compress, so it moved 3.73 MB of JavaScript. Gzip at level 9 gives 0.90 MB, and Render or Cloudflare normally compress. Even at 0.9 MB on that network the transfer alone is several seconds, so the 2.5 s LCP target is **unlikely** to be met on a slow phone connection. Re-measure on staging.
+- The signed-in routes were not measured for INP.
+
+**F-22 — P2 — Single 3.73 MB JavaScript bundle (0.90 MB gzip), no code splitting.** The export produces one entry chunk and one worker chunk. It also loads a 390 KB icon font and four 97 KB font files. Fix: lazy-load heavy screens (reports, map, design, intelligence), subset the icon font, and keep the long-cache headers. Acceptance: the entry chunk is under about 1.5 MB raw, and LCP at or below 2.5 s on the throttled profile measured against staging.
+
+**API.** One local API instance (pool of 10, intelligence off) on a copy of the demo database scaled to 1,006 projects, 20,071 tasks and 300,018 activity rows.
+
+| Request | p50 / p95 (1 client) | Payload |
+|---|---|---|
+| `GET /projects` (50 per page) | 11 / 15 ms | 58 KB |
+| `GET /tasks` | 33 / 48 ms | 53 KB |
+| `GET /search?q=` | 42 / 51 ms | 3 KB |
+| `GET /projects/:id/activity` | 4 / 5 ms | 19 KB |
+| `POST /sync/pull` (first page) | 152 / 198 ms | 395 KB |
+| `GET /dashboard`, admin | 215 / 314 ms | 253 KB |
+| `GET /dashboard`, field worker | 108 / 132 ms | 230 KB |
+| `GET /projects`, 20 concurrent | 47 / 144 ms | 58 KB |
+| **`GET /dashboard`, 20 concurrent** | **1,908 / 2,214 ms** | 253 KB |
+
+**F-21 — P2 — `/dashboard` is unbounded and the slowest hot path.** `activeProjects` returns every active project (1,002 items, 202 KB of the 253 KB). At 20 concurrent users the p50 is about 1.9 s, against a target of 1 s for common operations. Today's real tenants are probably small, so this is a growth risk. Fix: cap or paginate the list, return only fields the dashboard shows, and cache per user for a few seconds. Acceptance: payload under 50 KB at 1,000 projects and p95 under 1 s at 20 concurrent requests on the same data.
+
+Other results:
+- The project-activity query uses its project index (0.76 ms for a 300k-row table).
+- Index coverage was **not** reviewed for every query.
+- Search is `ILIKE` plus `tsvector` on documents. That was fast at this size.
+- No page-level request counts or INP were collected.
+
+### 9.3 Staging and production configuration (CODE-READ; the deployed environments were not inspected)
+
+What the repo shows:
+- **Startup validation.** The API refuses to start in staging or production with local file storage or an unencrypted remote database. It requires `EXPO_ACCESS_TOKEN` for Expo push in production and keys for any enabled provider. Secrets come from the platform. Only `EXPO_PUBLIC_API_URL` ships in the app. A regex scan of the last 60 commits found no key-shaped strings.
+- **Container.** The Dockerfile is multi-stage, runs as the non-root `node` user, and installs production dependencies only. Images are tagged with the commit SHA.
+- **Database.** Migration `0002_supabase_lockdown` enables row security on every table and revokes `anon` and `authenticated`, and a test enforces it for new tables. Migrations run as a separate step before rollout, with `verify-full` TLS.
+- **Worker.** Recurring jobs are registered idempotently at startup, so losing Redis does not lose the schedules.
+
+| ID | Pri | Finding | Fix | Status |
+|---|---|---|---|---|
+| F-23 | P1 | **`deploy.yml` is not gated on CI.** Push to `main` builds, migrates the staging database and rolls out. Nothing requires the `CI` workflow to pass first. | Trigger on `workflow_run` of a successful CI, or call CI as a reusable workflow. | Not started |
+| F-24 | P2 | **A deploy can report green without deploying.** If `DEPLOY_HOOK_URL` is unset the rollout step only warns and exits 0, and the smoke test is skipped when `vars.API_URL` is empty. | Fail the job in staging and production when either is missing. | Not started |
+| F-25 | P2 | **No pre-migration snapshot or rollback automation.** Migrations are forward-only (documented). The deploy applies them to the live database with no backup or restore point step. | Take or verify a Supabase backup before `migrate`. Document the PITR restore steps for a bad migration. | Not started |
+| F-26 | P2 | **Production protection rules are unverified.** Production is manual dispatch, but whether the GitHub `production` environment requires reviewers cannot be seen from the repo. | Confirm required reviewers and a branch restriction. | Blocked: needs GitHub settings access |
+| F-27 | P2 | **`SENTRY_DSN` is declared in `env.ts` but nothing uses it**, so the production configuration implies error tracking that does not exist (see F-13). | Wire it in, or remove the variable. Needs your approval for a new service. | Not started |
+| F-28 | P3 | **`render.yaml` covers only the web app.** The API and worker services are not in the Blueprint, so their Render settings (plan, instance count, health check, env vars, autoscaling) cannot be reviewed from the repo. The CrewAI service is documented as a manual step. | Add them to the Blueprint or keep a reviewed settings export. | Not started |
+| F-29 | P3 | `docker-compose.yml` binds Postgres, Redis and MinIO to all interfaces with default passwords. It is a development file. | Bind to `127.0.0.1`. | Not started |
+| F-08 | P1 | Unchanged from section 2: the web service tracks the feature branch `claude/youthful-hypatia-epd25w`. | Pin to `main`. | Blocked: needs Render access |
+| F-04 | P1 | Unchanged: with `trustProxy: true` the client picks its own IP. The staging topology is needed (Cloudflare then Render, direct `onrender.com` fallback). | Hop-count or CIDR trust. | Blocked: needs topology |
+
+**Not verifiable here:**
+- Actual environment-variable values.
+- TLS versions and the Supabase CA setting.
+- The Supabase bucket's privacy and versioning.
+- Whether the Data API is disabled.
+- Database role privileges.
+- Cloudflare and Render settings.
+- The Cal integration.
+
+### 9.4 Backups and restore
+
+**Drill run (local, VERIFIED).** Logical backup and restore of the scaled database (50 tables, about 320k rows).
+
+- `pg_dump -Fc` took 1.7 s and produced 18 MB.
+- `pg_restore` into an empty database took 3.9 s.
+- **Result.** Row counts matched in all 50 tables. 50 of 50 tables kept row security, 17 of 17 sync triggers were present, and the `change_seq` sequence had the same value (622,058).
+- **What this proves.** The schema, RLS and sync triggers survive a dump and restore.
+- **What it does not prove.**
+  - Supabase backups, PITR, retention, or the restore time of a real database.
+  - Restore of the storage bucket (photos and documents).
+  - Any production RTO or RPO.
+
+| ID | Pri | Finding | Fix | Status |
+|---|---|---|---|---|
+| F-30 | P1 | **Restoring the database to an earlier point can silently strand offline devices (CODE-READ).** Sync pull returns `nextCursor = max(watermark, cursor)` (`services/api/src/services/sync.ts`). After a PITR restore the server's `change_seq` is lower than cursors already held by phones. Those devices pull nothing until the sequence passes their cursor, so changes made after the restore are never delivered. Their local copies also still contain rows the restored database lost. No restore epoch or forced resync exists. | Store an epoch, such as the database system identifier plus a restore counter, and return it with every pull. When a client's epoch differs, force a full resync and reconcile pending operations. Add a runbook step to bump the epoch after any restore. | Not started |
+| F-31 | P2 | **File backups are undefined.** Photos and documents live in object storage, outside the database backups. `docs/deployment.md` says to enable versioning and a lifecycle rule but gives no evidence. A database restore can leave rows pointing at missing objects, or objects with no rows. | Confirm bucket versioning or an external copy, and add an orphan and missing-object check to the restore runbook. | Blocked: needs Supabase access |
+| F-32 | P2 | **No scheduled restore test or measured RTO/RPO.** The docs say "test restores quarterly" and no result is recorded. | Run the drill on a Supabase scratch project, record timings in the runbook, and calendar it. | Not started |
+
+### 9.5 Updated Go/No-Go effect
+
+The Go/No-Go in section 7 stands: **Conditional Go (internal pilot only)**. The addendum adds three conditions to the "before external customers" list: F-23 (gate deploys on CI), F-30 (restore epoch for offline devices) and a Supabase restore drill that covers storage (F-31, F-32). The accessibility, bundle-size and dashboard findings (F-15 to F-22) belong to the "before expanding beyond a pilot" list.
+
+### 9.6 Additions to the backlog
+
+| ID | Pri | Category | Effort | Verification |
+|---|---|---|:-:|---|
+| F-23 | P1 | Release | S | A failing CI on `main` prevents the deploy workflow from starting |
+| F-30 | P1 | Reliability / DR | M-L | Restore a snapshot older than a device's cursor. The device resyncs and shows no phantom rows |
+| F-15, F-16 | P2 | Accessibility | S-M | axe 0 serious/critical on `/roles`, task and schedule. Manual screen-reader pass |
+| F-19, F-20 | P2 | Accessibility | S-M | Distinct titles. 0 targets under 24 px |
+| F-21 | P2 | Performance | S-M | See 9.2 |
+| F-22 | P2 | Performance | M | See 9.2 |
+| F-24, F-25, F-26, F-27, F-31, F-32 | P2 | Release / DR | S-M | As listed in 9.3 and 9.4 |
+| F-17, F-18, F-28, F-29 | P3 | Accessibility / Config | S | As listed |
+
+No code, configuration or data changes were made for section 9. All measurements used scratch databases that exist only in this session's container.
