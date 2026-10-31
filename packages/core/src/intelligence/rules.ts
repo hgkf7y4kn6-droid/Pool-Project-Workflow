@@ -362,16 +362,19 @@ function readinessRules(ctx: AnalysisContext, s: IntelligenceSettings): Finding[
   });
 
   const gateIdx = ctx.stageIndex(s.permitGateFromStage);
-  const permit = ctx.permitStatus();
   for (const st of upcoming) {
     const start = ctx.stageStart(st);
     const days = start ? ctx.daysUntil(start) : null;
     const idx = ctx.stages.indexOf(st);
+    const permit = gateIdx >= 0 && idx >= gateIdx ? ctx.permitStatus(st, s.permitGateFromStage) : null;
 
-    if (gateIdx >= 0 && idx >= gateIdx && permit.state !== "issued") {
+    if (permit && permit.state !== "issued") {
       const unknown = permit.state === "unknown";
-      const fromRecords = permit.source === "permits";
-      const blocking = permit.permits.filter((x) => !x.authorizesWork);
+      const stagePending = permit.projectWide.source === "stage" && permit.projectWide.state === "pending";
+      const reasons = [
+        ...permit.permits.filter((x) => !x.authorizesWork).map((x) => `the ${x.evidence.label} is ${x.status.replace(/_/g, " ")}`),
+        ...(stagePending ? ["the permit isn't recorded as issued in the permits stage"] : []),
+      ];
       out.push(
         make({
           ruleKey: "readiness.permit_gate",
@@ -383,16 +386,14 @@ function readinessRules(ctx: AnalysisContext, s: IntelligenceSettings): Finding[
           missingData: unknown,
           title: unknown ? `Can't confirm a permit for ${st.name}` : `${st.name} needs an issued permit`,
           observation: unknown
-            ? "There are no permit records, permits stage or permit-issued checklist item in this project, so issuance can't be checked."
-            : fromRecords
-              ? `${st.name}${start ? ` is planned to start ${start}` : " is next"}, but ${blocking.map((x) => `the ${x.evidence.label} is ${x.status.replace(/_/g, " ")}`).join("; ")}.`
-              : `${st.name}${start ? ` is planned to start ${start}` : " is next"}, but the permit isn't recorded as issued.`,
+            ? "There are no project-wide permit records, permits stage or permit-issued checklist item in this project, so issuance can't be checked."
+            : `${st.name}${start ? ` is planned to start ${start}` : " is next"}, but ${reasons.join("; ")}.`,
           risk: "Starting permitted work without an issued permit can mean a stop-work order, fines or tear-out.",
           recommendedAction: unknown
             ? "Add the project's permits so readiness can be tracked."
-            : fromRecords
-              ? "Confirm status with the jurisdiction and record the issued permit (or withdraw one that no longer applies) before work starts; hold the start date until then."
-              : "Confirm permit status with the jurisdiction and mark it issued in the permits stage before work starts; hold the start date until then.",
+            : stagePending
+              ? "Confirm permit status with the jurisdiction and mark it issued in the permits stage before work starts; hold the start date until then."
+              : "Confirm status with the jurisdiction and record the issued permit (or withdraw one that no longer applies) before work starts; hold the start date until then.",
           responsibleRole: "office",
           suggestedDueDate: dueBefore(ctx, start, 2),
           dueRationale: "Permit status must be confirmed before mobilizing.",
@@ -400,7 +401,7 @@ function readinessRules(ctx: AnalysisContext, s: IntelligenceSettings): Finding[
           stageId: st.id,
           evidence: [ctx.stageEvidence(st), ...permit.evidence],
           requiresApproval: false,
-          reevaluateWhen: fromRecords ? "A permit is recorded as issued, or withdrawn." : "A permit is added, or the permits stage or its issued checklist item is completed.",
+          reevaluateWhen: permit.projectWide.source === "permits" ? "A permit is recorded as issued, withdrawn, or linked to another stage." : "A permit is added, or the permits stage or its issued checklist item is completed.",
         }),
       );
     }

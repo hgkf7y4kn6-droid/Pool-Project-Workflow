@@ -89,24 +89,26 @@ export function evaluateMilestoneReadiness(ctx: AnalysisContext, stage: Stage, s
   // --- Permits ------------------------------------------------------------------------
   const gateIdx = ctx.stageIndex(settings.permitGateFromStage);
   if (gateIdx >= 0 && idx >= gateIdx) {
-    const permit = ctx.permitStatus();
-    const state: FactorState = permit.state === "issued" ? "ready" : permit.state === "pending" ? "blocked" : "unknown";
+    const permit = ctx.permitStatus(stage, settings.permitGateFromStage);
+    const wide = permit.projectWide;
+    const wideState: FactorState = wide.state === "issued" ? "ready" : wide.state === "pending" ? "blocked" : "unknown";
+    const items = [
+      // Without project-wide records, the permits stage stands in for them.
+      ...(wide.source === "stage"
+        ? [item(wide.state === "issued" ? "Permit issued" : wide.state === "pending" ? "Permit not yet recorded as issued" : "No permit records in this project", wideState, wide.evidence[0] ?? null, true)]
+        : []),
+      ...permit.permits.map((x) => item(`${x.evidence.label}: ${x.status.replace(/_/g, " ")}`, x.authorizesWork ? "ready" : "blocked", x.evidence, true)),
+    ];
     factors.push(
       factor(
         "permits",
         true,
-        permit.source === "permits"
-          ? permit.permits.map((x) => item(`${x.evidence.label}: ${x.status.replace(/_/g, " ")}`, x.authorizesWork ? "ready" : "blocked", x.evidence, true))
-          : [item(permit.state === "issued" ? "Permit issued" : permit.state === "pending" ? "Permit not yet recorded as issued" : "No permit records in this project", state, permit.evidence[0] ?? null, true)],
+        items,
         permit.state === "issued"
-          ? permit.source === "permits"
-            ? "Every permit on the project is issued and current. Verify the permit card is posted on site."
-            : "The permits stage or its issued checklist item is complete. Verify the permit card is posted on site."
+          ? "Every permit this stage needs is issued and current. Verify the permit card is posted on site."
           : permit.state === "pending"
-            ? permit.source === "permits"
-              ? "Work from this stage on needs every permit issued and current."
-              : "Work from this stage on needs an issued permit; the permits stage isn't complete."
-            : "Can't tell whether a permit is issued: there are no permit records, permits stage or checklist item.",
+            ? "This stage needs every project-wide permit, and any permit linked to it, issued and current."
+            : "Can't tell whether a permit is issued: there are no project-wide permit records, permits stage or checklist item.",
       ),
     );
   }

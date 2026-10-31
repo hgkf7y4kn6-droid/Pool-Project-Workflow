@@ -1,5 +1,5 @@
 /** The current Pool PM version. Written by `npm run version:bump`; a test keeps it equal to package.json. */
-export const APP_VERSION = "0.1.0";
+export const APP_VERSION = "0.1.1";
 
 /**
  * Pool PM version numbers are three single digits, MAJOR.MINOR.PATCH, and

@@ -55,7 +55,7 @@ The **next milestone** is the first stage in sort order that is not completed or
 | Factor | Mandatory | Source |
 |---|---|---|
 | `prerequisites` | yes | Earlier stages complete or skipped; open tasks in earlier stages; FS predecessors of this stage's tasks |
-| `permits` | yes, for stages configured as permit-gated (default: excavation onward) | `permits` records when the project has any that aren't withdrawn: each must be issued and unexpired, or finaled (a rejected or expired permit blocks until it's withdrawn or replaced). Without records: `permits` stage status or its "permit issued" checklist item. Documents in category `permit` only support the evidence |
+| `permits` | yes, for stages configured as permit-gated (default: excavation onward) Two parts, both required. **Project-wide** permits (no stage link, or linked to a stage before the gate such as Permits, or to a stage no longer in the plan) apply to every gated stage: when there are any that aren't withdrawn, each must be issued and unexpired, or finaled; without them, the `permits` stage status or its "permit issued" checklist item decides. **Linked** permits (linked to a gated stage) apply only to that stage. A rejected or expired permit blocks until it's withdrawn or replaced. Documents in category `permit` only support the evidence |
 | `inspections` | yes, for configured gates (default: `gunite` ← `pre_gunite`, `decking` ← `pre_deck`, `completion` ← `final`) | Latest inspection of the gate type must be `pass`; fail or partial with no later pass blocks |
 | `materials` | no | `material_usage` for this stage's tasks: ordered, delivery confirmed, expected delivery before required date |
 | `crew` | no | Assignee, crew or subcontractor on this stage's tasks; resource conflicts |
@@ -210,7 +210,7 @@ The API's `AgentProvider` has three implementations:
 
 ## 12. Known limitations
 
-- **Permits** are recorded per project in `permits` (staff-only, REST only for now: not yet in offline sync or the app). Projects without permit records fall back to the permits stage or its "permit issued" checklist item. A permit document only supports either, because it may be the application. Expiry is derived from `expiresOn`, not stored, and a project's permits are all treated as required by every permit-gated stage.
+- **Permits** are recorded per project in `permits` (staff-only, REST only for now: not yet in offline sync or the app). Projects without permit records fall back to the permits stage or its "permit issued" checklist item. A permit document only supports either, because it may be the application. Expiry is derived from `expiresOn`, not stored. A permit links to at most one stage, so a permit that covers several later stages should be left project-wide.
 - **Homeowner selections** are modeled as approvals. **Subcontractor availability** is inferred only from double-booking: there's no availability calendar.
 - **Weather risk** reuses the weather scan's alerts. Forecasts beyond about 10 days are reported as unknown.
 - **Historical data** is used only for stage durations (median and 80th percentile, at least 5 samples). Delay probabilities are deliberately not produced until enough outcome history exists to calibrate them.

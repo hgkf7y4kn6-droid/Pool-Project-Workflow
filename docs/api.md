@@ -271,7 +271,7 @@ Drafts written from verified project facts. Nothing leaves the app until someone
 
 ### `/permits`
 
-Permits are staff-only: clients and subcontractors don't get `permit:read`. Responses add `effectiveStatus`, which is `expired` for an issued permit past `expiresOn`. Moving to `submitted`, `issued` or `finaled` fills the matching date when it's missing; out-of-order dates return 400. `stageId` and `documentId` must belong to the permit's project.
+Permits are staff-only: clients and subcontractors don't get `permit:read`. Responses add `effectiveStatus`, which is `expired` for an issued permit past `expiresOn`. Moving to `submitted`, `issued` or `finaled` fills the matching date when it's missing; out-of-order dates return 400. `stageId` and `documentId` must belong to the permit's project. Linking a permit to a stage from the permit gate onward makes it gate only that stage; unlinked permits, or ones linked to an earlier stage such as Permits, gate every stage from the gate onward.
 
 | Method | Path | Validation schema |
 |---|---|---|

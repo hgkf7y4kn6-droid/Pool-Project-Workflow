@@ -230,6 +230,46 @@ describe("permit records", () => {
     expect(result.readiness.nextMilestone!.score).toBeLessThanOrEqual(BLOCKED_SCORE_CAP);
   });
 
+  it("gates only the stage a permit is linked to", () => {
+    const snap = base();
+    snap.permits = [permit({ id: "pm-plumbing", stageId: "s-plumbing", permitType: "plumbing", permitNumber: null, status: "submitted", issuedOn: null, expiresOn: null })];
+    const result = evaluateProject(snap, S, NOW);
+    // Excavation still relies on the completed permits stage and is ready.
+    expect(result.readiness.nextMilestone!.stageKey).toBe("excavation");
+    expect(result.readiness.nextMilestone!.label).toBe("ready");
+    const gates = byRule(result.findings, "readiness.permit_gate");
+    expect(gates.map((f) => f.stageId)).toEqual(["s-plumbing"]);
+    expect(gates[0]!.severity).toBe("high");
+    expect(gates[0]!.observation).toBe("Plumbing is planned to start 2026-06-08, but the plumbing permit (City of Phoenix) is submitted.");
+
+    const plumbing = evaluateStageReadiness(snap, S, "plumbing")!;
+    const factor = plumbing.factors.find((x) => x.key === "permits")!;
+    expect(factor.state).toBe("blocked");
+    // The permits stage stands in for project-wide records, next to the linked permit.
+    expect(factor.items.map((i) => [i.evidence?.id, i.state])).toEqual([
+      ["s-permits", "ready"],
+      ["pm-plumbing", "blocked"],
+    ]);
+  });
+
+  it("checks project-wide and linked permits together for a linked stage", () => {
+    const snap = base();
+    snap.permits = [permit(), permit({ id: "pm-plumbing", stageId: "s-plumbing", permitType: "plumbing", permitNumber: null })];
+    expect(evaluateProject(snap, S, NOW).findings).toEqual([]);
+    const items = evaluateStageReadiness(snap, S, "plumbing")!.factors.find((x) => x.key === "permits")!.items;
+    expect(items.map((i) => i.evidence?.id)).toEqual(["pm-building", "pm-plumbing"]);
+    // Excavation only lists the project-wide permit.
+    const excavation = evaluateStageReadiness(snap, S, "excavation")!.factors.find((x) => x.key === "permits")!.items;
+    expect(excavation.map((i) => i.evidence?.id)).toEqual(["pm-building"]);
+  });
+
+  it("treats a permit linked to a stage no longer in the plan as project-wide", () => {
+    const snap = base();
+    snap.permits = [permit({ stageId: "s-removed", status: "submitted", issuedOn: null, expiresOn: null })];
+    const gates = byRule(evaluateProject(snap, S, NOW).findings, "readiness.permit_gate");
+    expect(gates.map((f) => f.stageId)).toContain("s-excavation");
+  });
+
   it("keeps a rejected permit blocking until it's withdrawn", () => {
     const snap = base();
     snap.permits = [permit({ status: "rejected", issuedOn: null, expiresOn: null })];

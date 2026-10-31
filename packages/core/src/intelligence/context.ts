@@ -158,42 +158,72 @@ export class AnalysisContext {
   }
 
   /**
-   * Whether the permit gate is clear. Permit records are authoritative when
-   * the project has any (other than withdrawn ones): every one must be issued
-   * and unexpired, or finaled. Without them, issuance is read from the permits
-   * stage being complete or its "permit issued" checklist item being checked.
+   * Whether a project-wide permit applies to every gated stage: it isn't
+   * linked to a stage, or is linked to one before the gate (such as the
+   * Permits stage, where it's obtained) or to a stage no longer in the plan.
    */
-  permitStatus(): {
+  isProjectWidePermit(p: Permit, gateFromStage: string): boolean {
+    const stage = p.stageId ? this.stageById.get(p.stageId) : undefined;
+    return !stage || this.stages.indexOf(stage) < this.stageIndex(gateFromStage);
+  }
+
+  /**
+   * Whether the permit gate is clear for one gated stage. Two parts must pass:
+   * - Project-wide: when the project has project-wide permit records (other
+   *   than withdrawn ones), each must be issued and unexpired, or finaled.
+   *   Without them, issuance is read from the permits stage being complete or
+   *   its "permit issued" checklist item being checked.
+   * - Linked: every permit linked to this stage must authorize work. Permits
+   *   linked to other gated stages don't affect this one.
+   */
+  permitStatus(
+    stage: Stage,
+    gateFromStage: string,
+  ): {
     state: "issued" | "pending" | "unknown";
-    source: "permits" | "stage";
-    /** Permit records considered by the gate (not withdrawn), blocking ones first. */
+    /** How the project-wide part was decided, and its state. */
+    projectWide: { source: "permits" | "stage"; state: "issued" | "pending" | "unknown"; evidence: Evidence[] };
+    /** Permit records applying to this stage (not withdrawn), blocking ones first. */
     permits: { evidence: Evidence; status: EffectivePermitStatus; authorizesWork: boolean }[];
     evidence: Evidence[];
   } {
     const docs = this.snap.documents.filter((d) => d.category === "permit");
     // A permit document alone isn't proof of issuance (it may be the application), so it only supports.
     const docEvidence: Evidence[] = docs.map((d) => ({ type: "document", id: d.id, label: d.title, detail: "permit document on file" }));
-    const gate = permitGate(this.snap.permits, this.today);
-    if (gate.state !== "none") {
-      // Blocking permits first, so the first piece of evidence explains the state.
-      const considered = this.snap.permits.filter((p) => p.status !== "withdrawn");
-      const permits = [...gate.blocking, ...considered.filter((p) => !gate.blocking.includes(p))].map((p) => ({
-        evidence: this.permitEvidence(p),
-        status: effectivePermitStatus(p, this.today),
-        authorizesWork: permitAuthorizesWork(p, this.today),
-      }));
-      return { state: gate.state, source: "permits", permits, evidence: [...permits.map((p) => p.evidence), ...docEvidence] };
+    const wide = this.snap.permits.filter((p) => this.isProjectWidePermit(p, gateFromStage));
+    const linked = this.snap.permits.filter((p) => p.stageId === stage.id && !wide.includes(p));
+    const wideGate = permitGate(wide, this.today);
+    const linkedGate = permitGate(linked, this.today);
+
+    let projectWide: ReturnType<AnalysisContext["permitStatus"]>["projectWide"];
+    if (wideGate.state !== "none") {
+      projectWide = { source: "permits", state: wideGate.state, evidence: [] };
+    } else {
+      const evidence: Evidence[] = [];
+      const permitStage = this.stageByKey.get("permits");
+      const issuedItem = permitStage
+        ? this.snap.checklist.find((c) => /permit/i.test(c.label) && /issued/i.test(c.label) && this.taskById.get(c.taskId)?.stageId === permitStage.id)
+        : undefined;
+      if (permitStage) evidence.push(this.stageEvidence(permitStage));
+      if (issuedItem) evidence.push({ type: "checklist_item", id: issuedItem.id, label: issuedItem.label, detail: issuedItem.isChecked ? "checked" : "not checked" });
+      const state = permitStage?.status === "completed" || permitStage?.status === "skipped" || issuedItem?.isChecked ? "issued" : !permitStage && !issuedItem ? "unknown" : "pending";
+      projectWide = { source: "stage", state, evidence };
     }
-    const evidence: Evidence[] = [];
-    const permitStage = this.stageByKey.get("permits");
-    const issuedItem = permitStage
-      ? this.snap.checklist.find((c) => /permit/i.test(c.label) && /issued/i.test(c.label) && this.taskById.get(c.taskId)?.stageId === permitStage.id)
-      : undefined;
-    if (permitStage) evidence.push(this.stageEvidence(permitStage));
-    if (issuedItem) evidence.push({ type: "checklist_item", id: issuedItem.id, label: issuedItem.label, detail: issuedItem.isChecked ? "checked" : "not checked" });
-    evidence.push(...docEvidence);
-    if (permitStage?.status === "completed" || permitStage?.status === "skipped" || issuedItem?.isChecked) return { state: "issued", source: "stage", permits: [], evidence };
-    if (!permitStage && !issuedItem) return { state: "unknown", source: "stage", permits: [], evidence };
-    return { state: "pending", source: "stage", permits: [], evidence };
+
+    // Blocking permits first, so the first piece of evidence explains the state.
+    const considered = [...wide, ...linked].filter((p) => p.status !== "withdrawn");
+    const blocking = [...wideGate.blocking, ...linkedGate.blocking];
+    const permits = [...blocking, ...considered.filter((p) => !blocking.includes(p))].map((p) => ({
+      evidence: this.permitEvidence(p),
+      status: effectivePermitStatus(p, this.today),
+      authorizesWork: permitAuthorizesWork(p, this.today),
+    }));
+    const state = projectWide.state === "pending" || linkedGate.state === "pending" ? "pending" : projectWide.state === "unknown" ? "unknown" : "issued";
+    return {
+      state,
+      projectWide,
+      permits,
+      evidence: [...permits.map((x) => x.evidence), ...projectWide.evidence, ...docEvidence],
+    };
   }
 }
