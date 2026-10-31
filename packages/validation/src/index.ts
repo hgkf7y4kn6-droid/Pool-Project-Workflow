@@ -7,6 +7,7 @@ import {
   DEPENDENCY_TYPES,
   DOCUMENT_CATEGORIES,
   INSPECTION_RESULTS,
+  PERMIT_STATUSES,
   MEASUREMENT_CATEGORIES,
   MEASUREMENT_UNITS,
   NOTIFICATION_CHANNELS,
@@ -604,6 +605,22 @@ export const inspectionSchema = z.object({
 });
 export const updateInspectionSchema = patchOf(inspectionSchema.omit({ id: true }));
 
+export const permitSchema = z.object({
+  id: uuid.optional(),
+  stageId: uuid.nullish(),
+  permitType: z.string().trim().regex(/^[a-z0-9_]{1,60}$/, "Use lowercase letters, digits and underscores"),
+  jurisdiction: trimmed(160),
+  permitNumber: optionalText(80),
+  status: z.enum(PERMIT_STATUSES).default("draft"),
+  submittedOn: isoDate.nullish(),
+  issuedOn: isoDate.nullish(),
+  expiresOn: isoDate.nullish(),
+  finaledOn: isoDate.nullish(),
+  documentId: uuid.nullish(),
+  notes: optionalText(10_000),
+});
+export const updatePermitSchema = patchOf(permitSchema.omit({ id: true }));
+
 export const inspectionTemplateSchema = z.object({
   name: trimmed(120),
   inspectionType: trimmed(120),
@@ -764,6 +781,7 @@ export type PhotoCreateInput = z.infer<typeof photoCreateSchema>;
 export type DocumentCreateInput = z.infer<typeof documentCreateSchema>;
 export type MeasurementInput = z.infer<typeof measurementSchema>;
 export type InspectionInput = z.infer<typeof inspectionSchema>;
+export type PermitInput = z.infer<typeof permitSchema>;
 export type ApprovalRequestInput = z.infer<typeof approvalRequestSchema>;
 export type ApprovalDecisionInput = z.infer<typeof approvalDecisionSchema>;
 export type MessageInput = z.infer<typeof messageSchema>;
@@ -842,6 +860,7 @@ export const intelligenceSettingsSchema = z
     defaultLeadTimeDays: z.number().int().min(0).max(365),
     escalateAfterDays: z.number().int().min(1).max(30),
     permitGateFromStage: z.string().trim().min(1).max(60),
+    permitExpiryWarnDays: z.number().int().min(0).max(180),
     inspectionGates: z.record(z.string().max(60), stageKeyList),
     concealment: z.record(z.string().max(60), stageKeyList),
     notifyMinSeverity: z.enum(SEVERITIES),

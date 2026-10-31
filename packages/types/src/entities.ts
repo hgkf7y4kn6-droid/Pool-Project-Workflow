@@ -12,6 +12,7 @@ import type {
   NotificationChannel,
   NotificationType,
   PaymentStatus,
+  PermitStatus,
   PhotoKind,
   ProjectStatus,
   ProjectType,
@@ -508,6 +509,25 @@ export interface Inspection extends Audited, Versioned {
   notes: string | null;
   signatureName: string | null;
   signatureDataUrl: string | null;
+  deletedAt: ISODateTime | null;
+}
+
+export interface Permit extends Audited, Versioned {
+  id: UUID;
+  projectId: UUID;
+  stageId: UUID | null;
+  /** e.g. "building", "electrical", "pool_barrier". */
+  permitType: string;
+  jurisdiction: string;
+  permitNumber: string | null;
+  status: PermitStatus;
+  submittedOn: ISODate | null;
+  issuedOn: ISODate | null;
+  expiresOn: ISODate | null;
+  finaledOn: ISODate | null;
+  /** The permit card or approval letter, if uploaded. */
+  documentId: UUID | null;
+  notes: string | null;
   deletedAt: ISODateTime | null;
 }
 

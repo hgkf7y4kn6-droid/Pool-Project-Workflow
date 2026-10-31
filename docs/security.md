@@ -80,6 +80,8 @@ There are two layers, both enforced in `services/api/src/services/access.ts`:
 | `measurement:create` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  |
 | `inspection:read` | ✓ | ✓ |  | ✓ | ✓ |  |  |
 | `inspection:create` | ✓ | ✓ |  | ✓ |  |  |  |
+| `permit:read` | ✓ | ✓ |  | ✓ | ✓ |  |  |
+| `permit:manage` | ✓ | ✓ |  |  |  |  |  |
 | `approval:read` | ✓ | ✓ | ✓ | ✓ | ✓ |  | ✓ |
 | `approval:request` | ✓ | ✓ | ✓ |  |  |  |  |
 | `approval:decide` | ✓ |  |  |  |  |  | ✓ |

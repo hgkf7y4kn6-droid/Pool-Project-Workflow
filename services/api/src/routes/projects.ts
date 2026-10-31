@@ -23,6 +23,7 @@ import {
   measurementSchema,
   messageSchema,
   paymentSchema,
+  permitSchema,
   photoCreateSchema,
   photoUpdateSchema,
   projectListQuery,
@@ -34,6 +35,7 @@ import {
   updateInspectionSchema,
   updateMeasurementSchema,
   updatePaymentSchema,
+  updatePermitSchema,
   updateProjectSchema,
   updateStageSchema,
   updateTaskSchema,
@@ -55,6 +57,7 @@ import * as inspections from "../services/inspections";
 import * as measurements from "../services/measurements";
 import * as messages from "../services/messages";
 import * as payments from "../services/payments";
+import * as permits from "../services/permits";
 import * as photos from "../services/photos";
 import * as projects from "../services/projects";
 import * as schedule from "../services/schedule";
@@ -284,6 +287,18 @@ export function projectRoutes(app: FastifyInstance, deps: Deps) {
     s.patch("/inspections/:id", async (req) =>
       ok(await inspections.updateInspection(req.ctx, parse(id, req.params).id, parse(updateInspectionSchema, req.body))),
     );
+
+    // --- Permits ------------------------------------------------------------
+    s.get("/projects/:projectId/permits", async (req) => ok(await permits.listPermits(req.ctx, parse(projectParam, req.params).projectId)));
+    s.post("/projects/:projectId/permits", async (req, reply) =>
+      reply.code(201).send(ok(await permits.createPermit(req.ctx, parse(projectParam, req.params).projectId, parse(permitSchema, req.body)))),
+    );
+    s.get("/permits/:id", async (req) => ok(await permits.getPermit(req.ctx, parse(id, req.params).id)));
+    s.patch("/permits/:id", async (req) => ok(await permits.updatePermit(req.ctx, parse(id, req.params).id, parse(updatePermitSchema, req.body))));
+    s.delete("/permits/:id", async (req) => {
+      await permits.deletePermit(req.ctx, parse(id, req.params).id);
+      return ok({ deleted: true });
+    });
 
     // --- Messages -----------------------------------------------------------
     s.get("/projects/:projectId/messages", async (req) => {

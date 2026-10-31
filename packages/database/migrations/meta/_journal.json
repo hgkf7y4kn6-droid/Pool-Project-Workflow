@@ -29,6 +29,13 @@
       "when": 1793154018999,
       "tag": "0003_project_intelligence",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793419153139,
+      "tag": "0004_permits",
+      "breakpoints": true
     }
   ]
 }

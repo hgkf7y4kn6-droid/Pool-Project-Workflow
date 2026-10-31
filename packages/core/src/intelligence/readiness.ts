@@ -95,12 +95,18 @@ export function evaluateMilestoneReadiness(ctx: AnalysisContext, stage: Stage, s
       factor(
         "permits",
         true,
-        [item(permit.state === "issued" ? "Permit issued" : permit.state === "pending" ? "Permit not yet recorded as issued" : "No permit records in this project", state, permit.evidence[0] ?? null, true)],
+        permit.source === "permits"
+          ? permit.permits.map((x) => item(`${x.evidence.label}: ${x.status.replace(/_/g, " ")}`, x.authorizesWork ? "ready" : "blocked", x.evidence, true))
+          : [item(permit.state === "issued" ? "Permit issued" : permit.state === "pending" ? "Permit not yet recorded as issued" : "No permit records in this project", state, permit.evidence[0] ?? null, true)],
         permit.state === "issued"
-          ? "The permits stage or its issued checklist item is complete. Verify the permit card is posted on site."
+          ? permit.source === "permits"
+            ? "Every permit on the project is issued and current. Verify the permit card is posted on site."
+            : "The permits stage or its issued checklist item is complete. Verify the permit card is posted on site."
           : permit.state === "pending"
-            ? "Work from this stage on needs an issued permit; the permits stage isn't complete."
-            : "Can't tell whether a permit is issued: there's no permits stage or checklist item.",
+            ? permit.source === "permits"
+              ? "Work from this stage on needs every permit issued and current."
+              : "Work from this stage on needs an issued permit; the permits stage isn't complete."
+            : "Can't tell whether a permit is issued: there are no permit records, permits stage or checklist item.",
       ),
     );
   }

@@ -21,6 +21,7 @@ export const DEFAULT_INTELLIGENCE_SETTINGS: IntelligenceSettings = {
   defaultLeadTimeDays: 10,
   escalateAfterDays: 3,
   permitGateFromStage: "excavation",
+  permitExpiryWarnDays: 21,
   inspectionGates: { gunite: ["pre_gunite"], decking: ["pre_deck"], walkthrough: ["final"] },
   concealment: { gunite: ["plumbing", "electrical", "steel"], decking: ["plumbing", "electrical"] },
   notifyMinSeverity: "high",

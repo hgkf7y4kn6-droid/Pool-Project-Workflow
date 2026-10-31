@@ -1,11 +1,13 @@
 import type { Evidence } from "@pool/types";
 import { diffCalendarDays, WorkCalendar } from "../calendar";
+import { effectivePermitStatus, permitAuthorizesWork, permitGate, type EffectivePermitStatus } from "../permits";
 import { computeSchedule, ScheduleCycleError } from "../schedule";
 import type { IntelligenceSnapshot } from "./snapshot";
 
 type Task = IntelligenceSnapshot["tasks"][number];
 type Stage = IntelligenceSnapshot["stages"][number];
 type Inspection = IntelligenceSnapshot["inspections"][number];
+type Permit = IntelligenceSnapshot["permits"][number];
 
 export const isOpenTask = (t: Pick<Task, "status">) => t.status !== "done" && t.status !== "cancelled";
 export const isOpenStage = (s: Pick<Stage, "status">) => s.status !== "completed" && s.status !== "skipped";
@@ -145,23 +147,53 @@ export class AnalysisContext {
     return { type: "stage", id: s.id, label: s.name, detail: detail ?? `status ${s.status}, planned start ${this.stageStart(s) ?? "not set"}` };
   }
 
+  permitLabel(p: Permit): string {
+    return `${p.permitType.replace(/_/g, " ")} permit${p.permitNumber ? ` ${p.permitNumber}` : ""} (${p.jurisdiction})`;
+  }
+
+  permitEvidence(p: Permit): Evidence {
+    const status = effectivePermitStatus(p, this.today);
+    const dates = [p.issuedOn ? `issued ${p.issuedOn}` : null, p.expiresOn ? `expires ${p.expiresOn}` : null].filter(Boolean).join(", ");
+    return { type: "permit", id: p.id, label: this.permitLabel(p), detail: `status ${status.replace(/_/g, " ")}${dates ? `, ${dates}` : ""}` };
+  }
+
   /**
-   * Whether the permit is issued, from the authoritative records: the
-   * permits stage completed or its "permit issued" checklist item checked.
+   * Whether the permit gate is clear. Permit records are authoritative when
+   * the project has any (other than withdrawn ones): every one must be issued
+   * and unexpired, or finaled. Without them, issuance is read from the permits
+   * stage being complete or its "permit issued" checklist item being checked.
    */
-  permitStatus(): { state: "issued" | "pending" | "unknown"; evidence: Evidence[] } {
+  permitStatus(): {
+    state: "issued" | "pending" | "unknown";
+    source: "permits" | "stage";
+    /** Permit records considered by the gate (not withdrawn), blocking ones first. */
+    permits: { evidence: Evidence; status: EffectivePermitStatus; authorizesWork: boolean }[];
+    evidence: Evidence[];
+  } {
+    const docs = this.snap.documents.filter((d) => d.category === "permit");
+    // A permit document alone isn't proof of issuance (it may be the application), so it only supports.
+    const docEvidence: Evidence[] = docs.map((d) => ({ type: "document", id: d.id, label: d.title, detail: "permit document on file" }));
+    const gate = permitGate(this.snap.permits, this.today);
+    if (gate.state !== "none") {
+      // Blocking permits first, so the first piece of evidence explains the state.
+      const considered = this.snap.permits.filter((p) => p.status !== "withdrawn");
+      const permits = [...gate.blocking, ...considered.filter((p) => !gate.blocking.includes(p))].map((p) => ({
+        evidence: this.permitEvidence(p),
+        status: effectivePermitStatus(p, this.today),
+        authorizesWork: permitAuthorizesWork(p, this.today),
+      }));
+      return { state: gate.state, source: "permits", permits, evidence: [...permits.map((p) => p.evidence), ...docEvidence] };
+    }
     const evidence: Evidence[] = [];
     const permitStage = this.stageByKey.get("permits");
-    const docs = this.snap.documents.filter((d) => d.category === "permit");
     const issuedItem = permitStage
       ? this.snap.checklist.find((c) => /permit/i.test(c.label) && /issued/i.test(c.label) && this.taskById.get(c.taskId)?.stageId === permitStage.id)
       : undefined;
     if (permitStage) evidence.push(this.stageEvidence(permitStage));
     if (issuedItem) evidence.push({ type: "checklist_item", id: issuedItem.id, label: issuedItem.label, detail: issuedItem.isChecked ? "checked" : "not checked" });
-    for (const d of docs) evidence.push({ type: "document", id: d.id, label: d.title, detail: "permit document on file" });
-    // A permit document alone isn't proof of issuance (it may be the application), so it only supports.
-    if (permitStage?.status === "completed" || permitStage?.status === "skipped" || issuedItem?.isChecked) return { state: "issued", evidence };
-    if (!permitStage && !issuedItem) return { state: "unknown", evidence };
-    return { state: "pending", evidence };
+    evidence.push(...docEvidence);
+    if (permitStage?.status === "completed" || permitStage?.status === "skipped" || issuedItem?.isChecked) return { state: "issued", source: "stage", permits: [], evidence };
+    if (!permitStage && !issuedItem) return { state: "unknown", source: "stage", permits: [], evidence };
+    return { state: "pending", source: "stage", permits: [], evidence };
   }
 }

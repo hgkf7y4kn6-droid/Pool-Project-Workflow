@@ -50,6 +50,12 @@ export function agentRecords(snap: IntelligenceSnapshot): AgentRecord[] {
         facts: `${t.status}${t.stageId ? `; stage ${stageName.get(t.stageId) ?? ""}` : ""}; planned ${t.plannedStartDate ?? "?"} → ${t.plannedEndDate ?? t.dueDate ?? "?"}; owner ${snap.names[t.assigneeId ?? ""] ?? snap.names[t.crewTeamId ?? ""] ?? snap.names[t.subcontractorId ?? ""] ?? "unassigned"}`,
       })),
     ...snap.inspections.map((i) => ({ type: "inspection" as const, id: i.id, label: `${i.inspectionType.replace(/_/g, " ")} inspection`, facts: `result ${i.result}${i.scheduledFor ? `; scheduled ${i.scheduledFor}` : ""}${i.inspectedAt ? `; inspected ${i.inspectedAt.slice(0, 10)}` : ""}` })),
+    ...snap.permits.map((pm) => ({
+      type: "permit" as const,
+      id: pm.id,
+      label: `${pm.permitType.replace(/_/g, " ")} permit${pm.permitNumber ? ` ${s(pm.permitNumber, 80)}` : ""}`,
+      facts: `${pm.status.replace(/_/g, " ")}; ${s(pm.jurisdiction, 120)}${pm.issuedOn ? `; issued ${pm.issuedOn}` : ""}${pm.expiresOn ? `; expires ${pm.expiresOn}` : ""}`,
+    })),
     ...snap.approvals.map((a) => ({ type: "approval" as const, id: a.id, label: s(a.title, 120), facts: `${a.subjectType} approval ${a.status}${a.dueDate ? `; due ${a.dueDate}` : ""}` })),
     ...snap.changeOrders.map((c) => ({ type: "change_order" as const, id: c.id, label: `Change order #${c.number} ${s(c.title, 100)}`, facts: `${c.status}${c.scheduleImpactDays ? `; schedule impact ${c.scheduleImpactDays} days` : ""}` })),
     ...snap.materials.map((m) => ({

@@ -102,7 +102,7 @@ The built-in **manual** provider needs no vendor account: designs are entered in
 
 ## Data model
 
-There are 45 tables in `packages/database/src/schema.ts`. Conventions:
+There are 51 tables in `packages/database/src/schema.ts`. Conventions:
 - UUID primary keys
 - `organization_id` on every tenant row
 - `created_at`/`updated_at`/`created_by`/`updated_by`
@@ -115,7 +115,7 @@ There are 45 tables in `packages/database/src/schema.ts`. Conventions:
 | CRM | clients, properties |
 | Projects and schedule | projects, project_members, stage_templates, project_stages, tasks, task_dependencies, checklist_items, task_notes, schedule_baselines, weather_alerts |
 | Money | budgets, budget_items, expenses, labor_entries, materials, material_usage, vendors, change_orders, payments |
-| Records | photos, documents, document_versions, measurements, inspection_templates, inspections, design_projects, design_models |
+| Records | photos, documents, document_versions, measurements, inspection_templates, inspections, permits, design_projects, design_models |
 | Collaboration | approvals, messages, notifications, activity_logs, saved_views, integrations |
 | Sync | sync_operations (push idempotency log) |
 
@@ -136,6 +136,7 @@ erDiagram
   projects ||--o{ payments : "schedules"
   projects ||--o{ budget_items : "budget"
   projects ||--o{ inspections : "has"
+  projects ||--o{ permits : "needs"
   inspections ||--o{ tasks : "creates corrective"
   projects ||--o{ documents : "has"
   documents ||--o{ document_versions : "versions"

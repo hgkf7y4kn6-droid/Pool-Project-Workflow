@@ -12,6 +12,7 @@ import {
   materialUsage,
   messages,
   organizations,
+  permits,
   photos,
   projects,
   projectStages,
@@ -53,12 +54,13 @@ export async function loadSnapshot(deps: Deps, organizationId: string, projectId
   const project = p.project;
   const today = todayISO(org.timezone, deps.now());
 
-  const [stageRows, taskRows, depRows, checklistRows, inspRows, approvalRows, coRows, matRows, docRows, weatherRows, activity, photoLinks] = await Promise.all([
+  const [stageRows, taskRows, depRows, checklistRows, inspRows, permitRows, approvalRows, coRows, matRows, docRows, weatherRows, activity, photoLinks] = await Promise.all([
     db.select().from(projectStages).where(and(eq(projectStages.projectId, projectId), isNull(projectStages.deletedAt))).orderBy(asc(projectStages.sortOrder)),
     db.select().from(tasks).where(and(eq(tasks.projectId, projectId), isNull(tasks.deletedAt))),
     db.select().from(taskDependencies).where(and(eq(taskDependencies.projectId, projectId), isNull(taskDependencies.deletedAt))),
     db.select().from(checklistItems).where(and(eq(checklistItems.projectId, projectId), isNull(checklistItems.deletedAt))),
     db.select().from(inspections).where(and(eq(inspections.projectId, projectId), isNull(inspections.deletedAt))),
+    db.select().from(permits).where(and(eq(permits.projectId, projectId), isNull(permits.deletedAt))),
     db.select().from(approvals).where(eq(approvals.projectId, projectId)),
     db.select().from(changeOrders).where(and(eq(changeOrders.projectId, projectId), isNull(changeOrders.deletedAt))),
     db
@@ -169,6 +171,16 @@ export async function loadSnapshot(deps: Deps, organizationId: string, projectId
       scheduledFor: i.scheduledFor,
       inspectedAt: i.inspectedAt,
       createdAt: i.createdAt,
+    })),
+    permits: permitRows.map((pm) => ({
+      id: pm.id,
+      stageId: pm.stageId,
+      permitType: pm.permitType,
+      jurisdiction: pm.jurisdiction,
+      permitNumber: pm.permitNumber,
+      status: pm.status,
+      issuedOn: pm.issuedOn,
+      expiresOn: pm.expiresOn,
     })),
     approvals: approvalRows.map((a) => ({ id: a.id, subjectType: a.subjectType, title: a.title, status: a.status, dueDate: a.dueDate, createdAt: a.createdAt })),
     changeOrders: coRows.map((c) => ({ id: c.id, number: c.number, title: c.title, status: c.status, scheduleImpactDays: c.scheduleImpactDays, submittedAt: c.submittedAt })),

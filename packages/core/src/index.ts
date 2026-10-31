@@ -8,6 +8,7 @@ export * from "./stages";
 export * from "./progress";
 export * from "./weather";
 export * from "./inspections";
+export * from "./permits";
 export * from "./plan";
 export * from "./settings";
 export * from "./intelligence";

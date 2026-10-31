@@ -44,6 +44,7 @@ import {
   MEASUREMENT_UNITS,
   NOTIFICATION_TYPES,
   PAYMENT_STATUSES,
+  PERMIT_STATUSES,
   PHOTO_KINDS,
   PROJECT_STATUSES,
   PROJECT_TYPES,
@@ -94,6 +95,7 @@ export const visibilityEnum = pgEnum("visibility", VISIBILITIES);
 export const measurementCategoryEnum = pgEnum("measurement_category", MEASUREMENT_CATEGORIES);
 export const measurementUnitEnum = pgEnum("measurement_unit", MEASUREMENT_UNITS);
 export const inspectionResultEnum = pgEnum("inspection_result", INSPECTION_RESULTS);
+export const permitStatusEnum = pgEnum("permit_status", PERMIT_STATUSES);
 export const approvalStatusEnum = pgEnum("approval_status", APPROVAL_STATUSES);
 export const approvalSubjectEnum = pgEnum("approval_subject", APPROVAL_SUBJECTS);
 export const paymentStatusEnum = pgEnum("payment_status", PAYMENT_STATUSES);
@@ -932,6 +934,31 @@ export const inspections = pgTable(
     ...syncable,
   },
   (t) => [index().on(t.projectId), index().on(t.changeSeq)],
+);
+
+/** Building, electrical, barrier and other permits a project needs before work. */
+export const permits = pgTable(
+  "permits",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    projectId: uuid()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    stageId: uuid().references(() => projectStages.id, { onDelete: "set null" }),
+    permitType: text().notNull(),
+    jurisdiction: text().notNull(),
+    permitNumber: text(),
+    status: permitStatusEnum().notNull().default("draft"),
+    submittedOn: date(),
+    issuedOn: date(),
+    expiresOn: date(),
+    finaledOn: date(),
+    documentId: uuid().references(() => documents.id, { onDelete: "set null" }),
+    notes: text(),
+    ...audit,
+    ...syncable,
+  },
+  (t) => [index().on(t.projectId), index().on(t.expiresOn), index().on(t.changeSeq)],
 );
 
 // ---------------------------------------------------------------------------

@@ -238,6 +238,23 @@ export type MeasurementUnit = (typeof MEASUREMENT_UNITS)[number];
 export const INSPECTION_RESULTS = ["pending", "pass", "fail", "partial"] as const;
 export type InspectionResult = (typeof INSPECTION_RESULTS)[number];
 
+/**
+ * Permit lifecycle. "Expired" isn't stored: an issued permit past its
+ * `expiresOn` is reported as expired by `effectivePermitStatus()`.
+ */
+export const PERMIT_STATUSES = ["draft", "submitted", "revisions_requested", "issued", "finaled", "rejected", "withdrawn"] as const;
+export type PermitStatus = (typeof PERMIT_STATUSES)[number];
+
+export const PERMIT_STATUS_LABELS: Record<PermitStatus, string> = {
+  draft: "Not yet submitted",
+  submitted: "Submitted",
+  revisions_requested: "Revisions requested",
+  issued: "Issued",
+  finaled: "Finaled",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
+};
+
 export const APPROVAL_STATUSES = ["pending", "approved", "rejected", "cancelled"] as const;
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 
@@ -341,6 +358,8 @@ export const ACTIVITY_ACTIONS = [
   "measurement.recorded",
   "inspection.recorded",
   "inspection.failed",
+  "permit.recorded",
+  "permit.status_changed",
   "change_order.created",
   "change_order.status_changed",
   "approval.requested",

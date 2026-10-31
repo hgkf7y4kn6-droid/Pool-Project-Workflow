@@ -110,7 +110,7 @@ describe("project intelligence (rules only)", () => {
       expect(r.projectId).toBe(project.id);
       expect(r.evidence.length).toBeGreaterThan(0);
       for (const e of r.evidence) {
-        const table = { task: "tasks", stage: "project_stages", project: "projects", checklist_item: "checklist_items", dependency: "task_dependencies", inspection: "inspections", approval: "approvals", material: "material_usage", document: "documents", change_order: "change_orders", weather_alert: "weather_alerts" }[e.type as string];
+        const table = { task: "tasks", stage: "project_stages", project: "projects", checklist_item: "checklist_items", dependency: "task_dependencies", inspection: "inspections", permit: "permits", approval: "approvals", material: "material_usage", document: "documents", change_order: "change_orders", weather_alert: "weather_alerts" }[e.type as string];
         expect(table, e.type).toBeTruthy();
         const found = await db.execute(sql`select 1 from ${sql.identifier(table!)} where id = ${e.id}`);
         expect(found.rows.length, `${e.type} ${e.id}`).toBe(1);

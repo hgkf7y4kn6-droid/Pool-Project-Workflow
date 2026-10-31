@@ -370,6 +370,8 @@ function readinessRules(ctx: AnalysisContext, s: IntelligenceSettings): Finding[
 
     if (gateIdx >= 0 && idx >= gateIdx && permit.state !== "issued") {
       const unknown = permit.state === "unknown";
+      const fromRecords = permit.source === "permits";
+      const blocking = permit.permits.filter((x) => !x.authorizesWork);
       out.push(
         make({
           ruleKey: "readiness.permit_gate",
@@ -381,10 +383,16 @@ function readinessRules(ctx: AnalysisContext, s: IntelligenceSettings): Finding[
           missingData: unknown,
           title: unknown ? `Can't confirm a permit for ${st.name}` : `${st.name} needs an issued permit`,
           observation: unknown
-            ? "There's no permits stage or permit-issued checklist item in this project, so issuance can't be checked."
-            : `${st.name}${start ? ` is planned to start ${start}` : " is next"}, but the permit isn't recorded as issued.`,
+            ? "There are no permit records, permits stage or permit-issued checklist item in this project, so issuance can't be checked."
+            : fromRecords
+              ? `${st.name}${start ? ` is planned to start ${start}` : " is next"}, but ${blocking.map((x) => `the ${x.evidence.label} is ${x.status.replace(/_/g, " ")}`).join("; ")}.`
+              : `${st.name}${start ? ` is planned to start ${start}` : " is next"}, but the permit isn't recorded as issued.`,
           risk: "Starting permitted work without an issued permit can mean a stop-work order, fines or tear-out.",
-          recommendedAction: unknown ? "Record the permit (permits stage or checklist) so readiness can be tracked." : "Confirm permit status with the jurisdiction and mark it issued in the permits stage before work starts; hold the start date until then.",
+          recommendedAction: unknown
+            ? "Add the project's permits so readiness can be tracked."
+            : fromRecords
+              ? "Confirm status with the jurisdiction and record the issued permit (or withdraw one that no longer applies) before work starts; hold the start date until then."
+              : "Confirm permit status with the jurisdiction and mark it issued in the permits stage before work starts; hold the start date until then.",
           responsibleRole: "office",
           suggestedDueDate: dueBefore(ctx, start, 2),
           dueRationale: "Permit status must be confirmed before mobilizing.",
@@ -392,7 +400,7 @@ function readinessRules(ctx: AnalysisContext, s: IntelligenceSettings): Finding[
           stageId: st.id,
           evidence: [ctx.stageEvidence(st), ...permit.evidence],
           requiresApproval: false,
-          reevaluateWhen: "The permits stage or its issued checklist item is completed.",
+          reevaluateWhen: fromRecords ? "A permit is recorded as issued, or withdrawn." : "A permit is added, or the permits stage or its issued checklist item is completed.",
         }),
       );
     }
@@ -461,6 +469,38 @@ function readinessRules(ctx: AnalysisContext, s: IntelligenceSettings): Finding[
         );
       }
     }
+  }
+
+  // Issued permits that have expired or will expire before the work is done.
+  const finished = ["completed", "warranty", "cancelled"].includes(ctx.snap.project.status);
+  for (const pm of finished ? [] : ctx.snap.permits) {
+    if (pm.status !== "issued" || !pm.expiresOn) continue;
+    const days = ctx.daysUntil(pm.expiresOn);
+    if (days > s.permitExpiryWarnDays) continue;
+    const expired = days < 0;
+    const label = ctx.permitLabel(pm);
+    out.push(
+      make({
+        ruleKey: "readiness.permit_expiry",
+        agent: "readiness",
+        category: "permit",
+        dedupeKey: `readiness.permit_expiry:${pm.id}:${expired ? "expired" : "expiring"}`,
+        severity: expired ? "high" : "medium",
+        title: expired ? `The ${label} has expired` : `The ${label} expires ${pm.expiresOn}`,
+        observation: expired
+          ? `The permit expired on ${pm.expiresOn} and the project isn't finished.`
+          : `The permit expires in ${plural(days, "day")} (${pm.expiresOn}) and the project isn't finished.`,
+        risk: "Work under an expired permit can be stopped, and the remaining inspections may need a renewed permit.",
+        recommendedAction: "Ask the jurisdiction about an extension or renewal and record the new expiry date.",
+        responsibleRole: "office",
+        suggestedDueDate: expired ? ctx.today : addCalendarDays(pm.expiresOn, -Math.min(5, days)),
+        dueRationale: "Renewals need to be filed before the permit lapses.",
+        subject: { type: "permit", id: pm.id },
+        stageId: pm.stageId,
+        evidence: [ctx.permitEvidence(pm)],
+        reevaluateWhen: "The permit's expiry date or status changes.",
+      }),
+    );
   }
 
   // Failed inspections without a later pass.

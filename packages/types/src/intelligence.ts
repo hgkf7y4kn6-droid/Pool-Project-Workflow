@@ -76,6 +76,7 @@ export const EVIDENCE_TYPES = [
   "dependency",
   "checklist_item",
   "inspection",
+  "permit",
   "approval",
   "change_order",
   "material",
@@ -434,6 +435,8 @@ export interface IntelligenceSettings {
   escalateAfterDays: number;
   /** First stage key that needs an issued permit; that stage and every later one are gated. */
   permitGateFromStage: string;
+  /** Warn when an issued permit expires within this many days and the project isn't finished. */
+  permitExpiryWarnDays: number;
   /** Stage key → inspection types that must have passed before the stage starts. */
   inspectionGates: Record<string, string[]>;
   /** Stage key → earlier stage keys whose work it covers up (photos/inspections needed first). */

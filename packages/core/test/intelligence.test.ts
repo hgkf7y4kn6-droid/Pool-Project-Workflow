@@ -104,6 +104,7 @@ function base(): Snap {
     dependencies: keys.slice(1).map((k, i) => ({ id: `d-${k}`, predecessorId: `t-${keys[i]}`, successorId: `t-${k}`, type: "FS" as const, lagDays: 0 })),
     checklist: [{ id: "c-permit", taskId: "t-permits", label: "Permit issued and posted on site", required: true, requiresPhoto: false, isChecked: true, hasPhoto: false }],
     inspections: [],
+    permits: [],
     approvals: [],
     changeOrders: [],
     materials: [],
@@ -187,6 +188,91 @@ describe("scenario 1: excavation scheduled while the permit is pending", () => {
     const f = byRule(r.findings, "readiness.permit_gate")[0]!;
     expect(f.missingData).toBe(true);
     expect(f.severity).toBe("medium");
+  });
+});
+
+describe("permit records", () => {
+  type PermitRow = Snap["permits"][number];
+  const permit = (overrides: Partial<PermitRow> = {}): PermitRow => ({
+    id: "pm-building",
+    stageId: "s-permits",
+    permitType: "building",
+    jurisdiction: "City of Phoenix",
+    permitNumber: "BP-2026-0042",
+    status: "issued",
+    issuedOn: "2026-05-20",
+    expiresOn: "2026-11-20",
+    ...overrides,
+  });
+
+  it("clears the gate when every permit is issued and current", () => {
+    const snap = base();
+    snap.permits = [permit(), permit({ id: "pm-electrical", permitType: "electrical", permitNumber: null })];
+    const result = evaluateProject(snap, S, NOW);
+    expect(result.findings).toEqual([]);
+    const factor = result.readiness.nextMilestone!.factors.find((x) => x.key === "permits")!;
+    expect(factor.state).toBe("ready");
+    expect(factor.items.map((i) => i.evidence?.id)).toEqual(["pm-building", "pm-electrical"]);
+  });
+
+  it("is authoritative over the permits stage: a pending permit blocks even when the stage is complete", () => {
+    const snap = base();
+    snap.permits = [permit(), permit({ id: "pm-barrier", permitType: "pool_barrier", permitNumber: null, status: "submitted", issuedOn: null, expiresOn: null })];
+    const result = evaluateProject(snap, S, NOW);
+    const [f] = byRule(result.findings, "readiness.permit_gate").filter((x) => x.stageId === "s-excavation");
+    expect(f!.severity).toBe("critical");
+    expect(f!.observation).toContain("pool barrier permit (City of Phoenix) is submitted");
+    // The blocking permit is cited first.
+    expect(f!.evidence.map((e) => e.id).slice(0, 3)).toEqual(["s-excavation", "pm-barrier", "pm-building"]);
+    const factor = result.readiness.nextMilestone!.factors.find((x) => x.key === "permits")!;
+    expect(factor.state).toBe("blocked");
+    expect(factor.items.map((i) => i.state)).toEqual(["blocked", "ready"]);
+    expect(result.readiness.nextMilestone!.score).toBeLessThanOrEqual(BLOCKED_SCORE_CAP);
+  });
+
+  it("keeps a rejected permit blocking until it's withdrawn", () => {
+    const snap = base();
+    snap.permits = [permit({ status: "rejected", issuedOn: null, expiresOn: null })];
+    expect(byRule(evaluateProject(snap, S, NOW).findings, "readiness.permit_gate").length).toBeGreaterThan(0);
+    snap.permits = [permit({ status: "withdrawn", issuedOn: null, expiresOn: null })];
+    // Only withdrawn permits: fall back to the permits stage, which is complete.
+    const r = evaluateProject(snap, S, NOW);
+    expect(byRule(r.findings, "readiness.permit_gate")).toEqual([]);
+    expect(r.readiness.nextMilestone!.factors.find((x) => x.key === "permits")!.state).toBe("ready");
+  });
+
+  it("treats an expired permit as blocking and raises a high expiry finding", () => {
+    const snap = base();
+    snap.permits = [permit({ expiresOn: "2026-05-31" })];
+    const result = evaluateProject(snap, S, NOW);
+    expect(result.readiness.nextMilestone!.factors.find((x) => x.key === "permits")!.state).toBe("blocked");
+    const [f] = byRule(result.findings, "readiness.permit_expiry");
+    expect(f!.severity).toBe("high");
+    expect(f!.subject).toEqual({ type: "permit", id: "pm-building" });
+    expect(f!.dedupeKey).toBe("readiness.permit_expiry:pm-building:expired");
+    expect(f!.evidence[0]!.detail).toBe("status expired, issued 2026-05-20, expires 2026-05-31");
+  });
+
+  it("warns before expiry without blocking, and not once the project is finished", () => {
+    const snap = base();
+    snap.permits = [permit({ expiresOn: "2026-06-15" })];
+    const result = evaluateProject(snap, S, NOW);
+    expect(result.readiness.nextMilestone!.factors.find((x) => x.key === "permits")!.state).toBe("ready");
+    const [f] = byRule(result.findings, "readiness.permit_expiry");
+    expect(f!.severity).toBe("medium");
+    expect(f!.title).toBe("The building permit BP-2026-0042 (City of Phoenix) expires 2026-06-15");
+    expect(f!.suggestedDueDate).toBe("2026-06-10");
+
+    snap.project.status = "completed";
+    expect(byRule(runRules(new AnalysisContext(snap), S), "readiness.permit_expiry")).toEqual([]);
+  });
+
+  it("ignores a finaled permit's expiry date", () => {
+    const snap = base();
+    snap.permits = [permit({ status: "finaled", expiresOn: "2026-05-01" })];
+    const result = evaluateProject(snap, S, NOW);
+    expect(byRule(result.findings, "readiness.permit_expiry")).toEqual([]);
+    expect(byRule(result.findings, "readiness.permit_gate")).toEqual([]);
   });
 });
 

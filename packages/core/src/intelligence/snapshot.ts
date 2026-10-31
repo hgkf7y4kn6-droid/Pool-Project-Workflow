@@ -10,6 +10,7 @@ import type {
   EvidenceType,
   ImpactRef,
   InspectionResult,
+  PermitStatus,
   ProjectStatus,
   ProposedAction,
   ResponsibleRole,
@@ -79,6 +80,16 @@ export interface IntelligenceSnapshot {
   dependencies: { id: string; predecessorId: string; successorId: string; type: DependencyType; lagDays: number }[];
   checklist: { id: string; taskId: string; label: string; required: boolean; requiresPhoto: boolean; isChecked: boolean; hasPhoto: boolean }[];
   inspections: { id: string; stageId: string | null; inspectionType: string; result: InspectionResult; scheduledFor: string | null; inspectedAt: string | null; createdAt: string }[];
+  permits: {
+    id: string;
+    stageId: string | null;
+    permitType: string;
+    jurisdiction: string;
+    permitNumber: string | null;
+    status: PermitStatus;
+    issuedOn: string | null;
+    expiresOn: string | null;
+  }[];
   approvals: { id: string; subjectType: ApprovalSubject; title: string; status: ApprovalStatus; dueDate: string | null; createdAt: string }[];
   changeOrders: { id: string; number: number; title: string; status: ChangeOrderStatus; scheduleImpactDays: number; submittedAt: string | null }[];
   materials: {

@@ -269,6 +269,16 @@ Drafts written from verified project facts. Nothing leaves the app until someone
 | GET | `/organizations/current` |  |
 | PATCH | `/organizations/current` | `updateOrganizationSchema` |
 
+### `/permits`
+
+Permits are staff-only: clients and subcontractors don't get `permit:read`. Responses add `effectiveStatus`, which is `expired` for an issued permit past `expiresOn`. Moving to `submitted`, `issued` or `finaled` fills the matching date when it's missing; out-of-order dates return 400. `stageId` and `documentId` must belong to the permit's project.
+
+| Method | Path | Validation schema |
+|---|---|---|
+| GET | `/permits/:id` | (`permit:read`) |
+| PATCH | `/permits/:id` | `updatePermitSchema` (`permit:manage`) |
+| DELETE | `/permits/:id` | soft delete (`permit:manage`) |
+
 ### `/photos`
 
 | Method | Path | Validation schema |
@@ -330,6 +340,8 @@ Drafts written from verified project facts. Nothing leaves the app until someone
 | GET | `/projects/:projectId/payments` |  |
 | POST | `/projects/:projectId/payments` | `paymentSchema` |
 | PATCH | `/projects/:projectId/payments/:id` | `updatePaymentSchema` |
+| GET | `/projects/:projectId/permits` | (`permit:read`) |
+| POST | `/projects/:projectId/permits` | `permitSchema` (`permit:manage`) |
 | GET | `/projects/:projectId/photos` |  |
 | POST | `/projects/:projectId/photos` | `photoCreateSchema` |
 | GET | `/projects/:projectId/property` |  |
