@@ -106,6 +106,10 @@ const envSchema = z
     if (isDeployedEnv(env.APP_ENV) && remoteDb && env.DATABASE_SSL === "disable") {
       ctx.addIssue({ code: "custom", path: ["DATABASE_SSL"], message: "Use DATABASE_SSL=verify-full (or require) for a remote database" });
     }
+    // "require" encrypts but accepts any certificate, so production must also check who it is talking to.
+    if (env.APP_ENV === "production" && remoteDb && env.DATABASE_SSL !== "verify-full") {
+      ctx.addIssue({ code: "custom", path: ["DATABASE_SSL"], message: "Production needs DATABASE_SSL=verify-full (with DATABASE_SSL_CA for Supabase)" });
+    }
     if (env.STORAGE_DRIVER === "s3" && !env.S3_BUCKET) {
       ctx.addIssue({ code: "custom", path: ["S3_BUCKET"], message: "S3_BUCKET is required for the s3 driver" });
     }
